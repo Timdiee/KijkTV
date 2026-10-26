@@ -126,7 +126,7 @@ class MainActivity : Activity() {
         findViewById<Button>(R.id.tabMovies).setOnClickListener { releasePreview(); startActivity(MediaActivity.movies(this)) }
         findViewById<Button>(R.id.tabSeries).setOnClickListener { releasePreview(); startActivity(MediaActivity.series(this)) }
         findViewById<Button>(R.id.tabHistory).setOnClickListener { releasePreview(); startActivity(Intent(this, HistoryActivity::class.java)) }
-        findViewById<Button>(R.id.tabAccount).setOnClickListener { showAccountMenu() }
+        findViewById<View>(R.id.tabAccount).setOnClickListener { showAccountMenu() }
 
         search.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}

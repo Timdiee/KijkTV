@@ -152,13 +152,15 @@ class HomeActivity : Activity() {
         findViewById<Button>(R.id.navMovies).setOnClickListener { startActivity(MediaActivity.movies(this)) }
         findViewById<Button>(R.id.navSeries).setOnClickListener { startActivity(MediaActivity.series(this)) }
         findViewById<Button>(R.id.navHistory).setOnClickListener { startActivity(Intent(this, HistoryActivity::class.java)) }
-        findViewById<Button>(R.id.navSettings).setOnClickListener {
+        findViewById<View>(R.id.navSettings).setOnClickListener {
             Settings.show(
                 this,
                 onReloadChannels = { prefs.account?.let { refresh(it) } },
                 onReloadEpg = { ensureEpg() }
             )
         }
+
+        App.showLastCrash(this)
 
         val acc = prefs.account
         if (acc == null) {
