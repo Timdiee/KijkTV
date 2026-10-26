@@ -5,6 +5,8 @@
     function boot() {
         var a = KTV.account.get();
         KTV.screens.push(a ? KTV.Home() : KTV.Login());
+        // Ontwikkelaarsmodus op de achtergrond verlengen (eens per week).
+        setTimeout(function () { KTV.devmode.renewIfNeeded(false); }, 8000);
     }
 
     // Pauzeer het beeld als de app naar de achtergrond gaat (bijv. Home-knop).

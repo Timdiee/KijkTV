@@ -346,7 +346,7 @@
         var timer = setInterval(function () { nav._clock.textContent = KTV.time(Date.now()); onEpg(); }, 20000);
 
         s.show = function () { loadAll(); };
-        s.resume = function () { if (D.channels.length) build(); };
+        s.resume = function () { if (D.channels.length) build(); KTV.devmode.renewIfNeeded(false); };
         s.reload = function () { D.channels = []; loadAll(); };
         s.back = function () { KTV.exit(); };
         s.destroy = function () { clearInterval(timer); KTV.epg.offUpdate(onEpg); };
@@ -632,6 +632,7 @@
             'Streamtype: ' + fmt,
             'Zenderlijst vernieuwen',
             'Programmagids vernieuwen',
+            'Ontwikkelaarsmodus verlengen (laatst: ' + KTV.devmode.label() + ')',
             'Over KijkTV'
         ], function (i) {
             if (i === 0) KTV.screens.push(KTV.Login());
@@ -644,7 +645,13 @@
             }
             if (i === 2) { while (KTV.screens.stack.length > 1) KTV.screens.pop(); if (KTV.home) KTV.home.reload(); }
             if (i === 3) { KTV.epg.clear(); KTV.toast('Programmagids wordt opnieuw opgehaald'); }
-            if (i === 4) KTV.dialog.choose('KijkTV 1.0 voor LG', 'IPTV-speler voor je eigen abonnement.\nGeen reclame, geen kosten.', ['Sluiten'], null);
+            if (i === 4) {
+                if (!KTV.devmode.onTv()) { KTV.toast('Alleen beschikbaar op de tv'); return; }
+                KTV.devmode.renewIfNeeded(true).then(function (ok) {
+                    KTV.toast(ok ? 'Ontwikkelaarsmodus verlengd' : 'Automatisch verlengen lukte niet. Gebruik de Developer Mode-app.');
+                });
+            }
+            if (i === 5) KTV.dialog.choose('KijkTV 1.1 voor LG', 'IPTV-speler voor je eigen abonnement.\nGeen reclame, geen kosten.', ['Sluiten'], null);
         });
     };
 })();

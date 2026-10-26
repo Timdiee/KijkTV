@@ -382,6 +382,37 @@
         set: function (k, v) { var s = store.get('settings', {}); s[k] = v; store.set('settings', s); }
     };
 
+    /* ---------------- Ontwikkelaarsmodus automatisch verlengen ---------------- */
+
+    var WEEK = 7 * 86400000;
+
+    KTV.devmode = {
+        onTv: function () { return typeof window.PalmServiceBridge !== 'undefined'; },
+        last: function () { return store.get('devRenew', 0); },
+        /** Verlengt als het langer dan een week geleden is (of altijd bij force). */
+        renewIfNeeded: function (force) {
+            if (!this.onTv()) return Promise.resolve(false);
+            if (!force && Date.now() - this.last() < WEEK) return Promise.resolve(false);
+            var top = KTV.screens.top();
+            // Niet onderbreken terwijl iemand kijkt; dan probeert hij het later opnieuw.
+            if (!force && top && top.root.classList.contains('player')) return Promise.resolve(false);
+            KTV.toast('Ontwikkelaarsmodus wordt automatisch verlengd…');
+            return KTV.call('renewDevMode', {}).then(function (r) {
+                if (r && r.launched) {
+                    store.set('devRenew', Date.now());
+                    return true;
+                }
+                return false;
+            }, function () { return false; });
+        },
+        label: function () {
+            var t = this.last();
+            if (!t) return 'nog niet';
+            var days = Math.floor((Date.now() - t) / 86400000);
+            return days === 0 ? 'vandaag' : days === 1 ? 'gisteren' : days + ' dagen geleden';
+        }
+    };
+
     /* ---------------- Favorieten ---------------- */
 
     KTV.fav = {

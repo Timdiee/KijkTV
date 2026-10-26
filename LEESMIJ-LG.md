@@ -33,11 +33,13 @@ Eenmalig ongeveer 20 minuten. Je hebt nodig: de LG-tv, een computer op hetzelfde
 
 Tip: typen met de afstandsbediening is lastig. Met de **LG ThinQ**-app op je telefoon kun je tekst typen en plakken op de tv.
 
-## Belangrijk: elke 41 dagen verlengen
+## Verlengen gaat vanzelf
 
-De ontwikkelaarsmodus blijft **1000 uur (± 41 dagen)** geldig. Open daarna (of eerder) op de tv de app **Developer Mode** en klik op **Extend**, of klik in Dev Manager op de verlengknop. Je ziet daar ook hoeveel tijd er nog over is.
+De ontwikkelaarsmodus blijft **1000 uur (± 41 dagen)** geldig. KijkTV verlengt hem **automatisch, eens per week**, als je de app opent. Je ziet dan heel even het Developer Mode-scherm, waarna KijkTV vanzelf terugkomt. Zolang je KijkTV minstens één keer per maand gebruikt, hoef je zelf niets te doen.
 
-Verloopt hij toch, dan verdwijnt KijkTV van de tv. Je installeert hem dan opnieuw met stap 4, en logt opnieuw in.
+Controleren of het werkt: open in KijkTV het **tandwiel**. Daar staat **Ontwikkelaarsmodus verlengen (laatst: ...)**. Met die knop verleng je ook direct. Je kunt het ook nakijken in de app **Developer Mode** op de tv: de resterende tijd moet weer op ongeveer 999 uur staan.
+
+Werkt automatisch verlengen bij jouw tv niet? Open dan af en toe de app **Developer Mode** en klik op **Extend**. Verloopt hij toch, dan verdwijnt KijkTV van de tv. Je installeert hem dan opnieuw met stap 4.
 
 ## Bijwerken naar een nieuwe versie
 

@@ -133,7 +133,27 @@ var handlers = {
         return get(p.url, p.timeout || 45000).then(function (r) { return { status: r.status, body: r.body }; });
     },
     xtreamList: xtreamList,
-    ping: function () { return Promise.resolve({ ok: true, node: process.version }); }
+    ping: function () { return Promise.resolve({ ok: true, node: process.version }); },
+
+    /**
+     * Verlengt de ontwikkelaarsmodus, net als de knop Extend in de Developer Mode-app:
+     * die app wordt met {extend: true} gestart, waarna KijkTV weer naar voren komt.
+     */
+    renewDevMode: function () {
+        return new Promise(function (resolve) {
+            if (!service) { resolve({ launched: false }); return; }
+            service.call('luna://com.webos.applicationManager/launch',
+                { id: 'com.palmdts.devmode', params: { extend: true } },
+                function (m) {
+                    var ok = !!(m && m.payload && m.payload.returnValue);
+                    setTimeout(function () {
+                        service.call('luna://com.webos.applicationManager/launch', { id: 'nl.kijktv.app' }, function () {
+                            resolve({ launched: ok });
+                        });
+                    }, 3500);
+                });
+        });
+    }
 };
 
 function run(method, payload) {
@@ -144,10 +164,11 @@ function run(method, payload) {
 
 // Op de tv: registreren bij de luna-bus. Buiten de tv (tests): alleen exporteren.
 var Service = null;
+var service = null;
 try { Service = require('webos-service'); } catch (e) { Service = null; }
 
 if (Service) {
-    var service = new Service('nl.kijktv.app.service');
+    service = new Service('nl.kijktv.app.service');
     Object.keys(handlers).forEach(function (name) {
         service.register(name, function (message) {
             run(name, message.payload).then(function (data) {
