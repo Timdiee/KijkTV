@@ -45,7 +45,7 @@ class PlayerActivity : Activity() {
             return WatchItem(
                 "cu:${ch.streamId}:${p.start}", WatchItem.CATCHUP, p.title.ifEmpty { ch.name },
                 "${ch.name}  ·  ${Fmt.day(p.start)} ${Fmt.range(p)}", ch.logo, url,
-                durationMs = p.stop - p.start
+                durationMs = p.stop - p.start, plot = p.desc
             )
         }
 
@@ -80,6 +80,8 @@ class PlayerActivity : Activity() {
     /** Programma dat teruggekeken wordt (null = live). */
     private var catchup: Programme? = null
     private var lastLeftPress = 0L
+    private lateinit var pause: PauseOverlay
+    private var longPressed = false
 
     private val hideInfo = Runnable { info.visibility = View.GONE }
     private val playPending = Runnable { playCurrent() }
@@ -93,6 +95,10 @@ class PlayerActivity : Activity() {
     private val ticker = object : Runnable {
         override fun run() {
             if (info.visibility == View.VISIBLE) updateInfo()
+            if (pause.isShowing) player?.let { p ->
+                val d = p.duration
+                pause.update(p.currentPosition, if (d != C.TIME_UNSET && d > 0) d else 0)
+            }
             handler.postDelayed(this, 1000)
         }
     }
@@ -159,6 +165,17 @@ class PlayerActivity : Activity() {
         infoNext = findViewById(R.id.infoNext)
         infoHint = findViewById(R.id.infoHint)
         infoGroup = findViewById(R.id.infoGroup)
+        pause = PauseOverlay(
+            this,
+            onResume = { togglePause() },
+            onSeek = { ms -> seekBy(ms) },
+            onRestart = {
+                val now = Epg.now(list[index])
+                pause.hide()
+                if (now != null) startActivity(catchup(this, index, now))
+            },
+            onNext = { }
+        )
 
         list = Repo.playList
         if (list.isEmpty()) {
@@ -275,7 +292,7 @@ class PlayerActivity : Activity() {
             canSeek -> "◀ ▶  terugspoelen / vooruit"
             canRestart -> "◀ 2× drukken  = dit programma vanaf het begin kijken"
             else -> ""
-        }
+        }.let { if (it.isEmpty()) "OK lang ingedrukt  ·  pauze" else "$it   ·   OK lang = pauze" }
     }
 
     private fun clock(ms: Long): String {
@@ -297,6 +314,7 @@ class PlayerActivity : Activity() {
 
     /** Zappen: info meteen tonen, stream pas starten als je even stopt met drukken. */
     private fun zap(delta: Int) {
+        pause.hide()
         if (catchup != null) {
             // Vanuit terugkijken: eerst terug naar live op dezelfde zender.
             catchup = null
@@ -320,7 +338,7 @@ class PlayerActivity : Activity() {
             target = (d - 5000).coerceAtLeast(0)
         }
         p.seekTo(target)
-        showInfo()
+        if (pause.isShowing) pause.update(target, if (d != C.TIME_UNSET) d else 0) else showInfo()
     }
 
     private fun onLeft() {
@@ -342,18 +360,43 @@ class PlayerActivity : Activity() {
         if (catchup != null || liveSeekable()) seekBy(SEEK_MS) else showInfo()
     }
 
+    override fun onKeyLongPress(keyCode: Int, event: KeyEvent): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
+            longPressed = true
+            if (errorView.visibility != View.VISIBLE) togglePause()
+            return true
+        }
+        return super.onKeyLongPress(keyCode, event)
+    }
+
+    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
+        if (!pause.isShowing && (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER ||
+                keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)
+        ) {
+            if (!longPressed && !event.isCanceled) {
+                if (errorView.visibility == View.VISIBLE) playCurrent() else showInfo()
+            }
+            longPressed = false
+            return true
+        }
+        return super.onKeyUp(keyCode, event)
+    }
+
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        if (pause.isShowing) {
+            when (keyCode) {
+                KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_MEDIA_PLAY -> { togglePause(); return true }
+            }
+            return super.onKeyDown(keyCode, event)
+        }
         when (keyCode) {
             KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_CHANNEL_DOWN -> { zap(-1); return true }
             KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_CHANNEL_UP -> { zap(1); return true }
             KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_MEDIA_REWIND -> { onLeft(); return true }
             KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> { onRight(); return true }
             KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER -> {
-                when {
-                    errorView.visibility == View.VISIBLE -> playCurrent()
-                    catchup != null -> togglePause()
-                    else -> showInfo()
-                }
+                // Kort drukken = info, lang ingedrukt = pauze (afgehandeld bij loslaten).
+                if (event.repeatCount == 0) { event.startTracking(); longPressed = false }
                 return true
             }
             KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_MEDIA_PLAY, KeyEvent.KEYCODE_MEDIA_PAUSE -> {
@@ -371,8 +414,32 @@ class PlayerActivity : Activity() {
     private fun togglePause() {
         val p = player ?: return
         p.playWhenReady = !p.playWhenReady
-        showInfo()
-        if (!p.playWhenReady) handler.removeCallbacks(hideInfo)
+        if (p.playWhenReady) {
+            pause.hide()
+            showInfo()
+            return
+        }
+        handler.removeCallbacks(hideInfo)
+        info.visibility = View.GONE
+        val ch = list[index]
+        val now = Epg.now(ch)
+        val next = Epg.next(ch)
+        val sub = buildString {
+            append(ch.name)
+            if (now != null) append("  ·  ${Fmt.range(now)}")
+            if (next != null) append("  ·  straks: ${next.title}")
+        }
+        pause.show(
+            heading = "📺 Live tv",
+            titleText = now?.title?.ifEmpty { null } ?: ch.name,
+            subText = sub,
+            description = now?.desc.orEmpty(),
+            seekable = liveSeekable(),
+            canRestart = now != null && Xtream.canCatchup(ch, now) && prefs.account?.isXtream == true,
+            nextLabel = null
+        )
+        val d = p.duration
+        pause.update(p.currentPosition, if (d != C.TIME_UNSET && d > 0) d else 0)
     }
 
     override fun onDestroy() {

@@ -31,12 +31,12 @@ class VodPlayerActivity : Activity() {
             Intent(ctx, VodPlayerActivity::class.java)
                 .putExtra("key", w.key).putExtra("kind", w.kind).putExtra("title", w.title)
                 .putExtra("sub", w.subtitle).putExtra("img", w.image).putExtra("url", w.url)
-                .putExtra("sid", w.seriesId).putExtra("start", startPos)
+                .putExtra("sid", w.seriesId).putExtra("start", startPos).putExtra("plot", w.plot)
 
         fun episodeItem(acc: Account, s: Series, e: Episode) = WatchItem(
             "ep:${e.id}", WatchItem.EPISODE, s.name,
             "${Vod.episodeLabel(e)}  ·  ${e.title}", e.image ?: s.cover, Vod.episodeUrl(acc, e),
-            durationMs = e.durationSec * 1000L, seriesId = s.id
+            durationMs = e.durationSec * 1000L, seriesId = s.id, plot = e.plot.ifEmpty { s.plot }
         )
 
         fun movieItem(acc: Account, m: Movie) = WatchItem(
@@ -62,12 +62,15 @@ class VodPlayerActivity : Activity() {
     private lateinit var item: WatchItem
     private var resumeAt = 0L
     private var retried = false
+    private lateinit var pause: PauseOverlay
+    @Volatile private var plotFetched = false
 
     private val hideInfo = Runnable { info.visibility = View.GONE }
     private val ticker = object : Runnable {
         var n = 0
         override fun run() {
             if (info.visibility == View.VISIBLE) updateInfo()
+            if (pause.isShowing) player?.let { pause.update(it.currentPosition, durationOf(it)) }
             if (++n % 10 == 0) savePosition()
             handler.postDelayed(this, 1000)
         }
@@ -77,7 +80,7 @@ class VodPlayerActivity : Activity() {
         override fun onPlaybackStateChanged(state: Int) {
             loadingView.visibility = if (state == Player.STATE_BUFFERING) View.VISIBLE else View.GONE
             if (state == Player.STATE_READY) errorView.visibility = View.GONE
-            if (state == Player.STATE_ENDED) onEnded()
+            if (state == Player.STATE_ENDED) { pause.hide(); onEnded() }
         }
 
         override fun onPlayerError(error: PlaybackException) {
@@ -113,6 +116,13 @@ class VodPlayerActivity : Activity() {
         infoHint = findViewById(R.id.infoHint)
         infoGroup = findViewById(R.id.infoGroup)
         infoNumber.visibility = View.GONE
+        pause = PauseOverlay(
+            this,
+            onResume = { togglePause() },
+            onSeek = { ms -> seekBy(ms) },
+            onRestart = { player?.seekTo(0); if (player?.playWhenReady == false) togglePause() },
+            onNext = { if (nextEpisode() != null) { pause.hide(); savePosition(); onEnded() } }
+        )
 
         val i = intent
         val url = i.getStringExtra("url")
@@ -120,9 +130,11 @@ class VodPlayerActivity : Activity() {
         item = WatchItem(
             i.getStringExtra("key") ?: url, i.getStringExtra("kind") ?: WatchItem.MOVIE,
             i.getStringExtra("title").orEmpty(), i.getStringExtra("sub").orEmpty(),
-            i.getStringExtra("img"), url, seriesId = i.getIntExtra("sid", 0)
+            i.getStringExtra("img"), url, seriesId = i.getIntExtra("sid", 0),
+            plot = i.getStringExtra("plot").orEmpty()
         )
         resumeAt = savedInstanceState?.getLong("pos") ?: i.getLongExtra("start", 0)
+        currentPlot = item.plot
         History.record(this, item)
     }
 
@@ -192,6 +204,7 @@ class VodPlayerActivity : Activity() {
         val s = Vod.queueSeries
         if (next != null && acc != null && s != null) {
             item = episodeItem(acc, s, next)
+            currentPlot = item.plot
             History.record(this, item)
             resumeAt = 0
             startItem()
@@ -228,6 +241,11 @@ class VodPlayerActivity : Activity() {
             if (next != null) "   ·   daarna: ${Vod.episodeLabel(next)}" else ""
     }
 
+    private fun durationOf(p: Player): Long {
+        val d = p.duration
+        return if (d != C.TIME_UNSET && d > 0) d else item.durationMs
+    }
+
     private fun seekBy(ms: Long) {
         val p = player ?: return
         var target = p.currentPosition + ms
@@ -235,7 +253,45 @@ class VodPlayerActivity : Activity() {
         val d = p.duration
         if (d != C.TIME_UNSET && target > d - 3000) target = (d - 3000).coerceAtLeast(0)
         p.seekTo(target)
-        showInfo()
+        if (pause.isShowing) pause.update(target, durationOf(p)) else showInfo()
+    }
+
+    private fun showPause() {
+        val p = player ?: return
+        handler.removeCallbacks(hideInfo)
+        info.visibility = View.GONE
+        val heading = when (item.kind) {
+            WatchItem.EPISODE -> "Je kijkt naar"
+            WatchItem.CATCHUP -> "⟲ Je kijkt terug"
+            else -> "Je kijkt naar"
+        }
+        val next = nextEpisode()
+        pause.show(
+            heading, item.title, item.subtitle, currentPlot, seekable = true, canRestart = true,
+            nextLabel = next?.let { "Volgende: ${Vod.episodeLabel(it)}" }
+        )
+        pause.update(p.currentPosition, durationOf(p))
+        fetchMoviePlot()
+    }
+
+    private var currentPlot = ""
+
+    /** Voor films haalt de app de beschrijving pas op als je pauzeert (scheelt laden). */
+    private fun fetchMoviePlot() {
+        if (plotFetched || item.kind != WatchItem.MOVIE || currentPlot.isNotEmpty()) return
+        val id = item.key.removePrefix("mv:").toIntOrNull() ?: return
+        val acc = Prefs(this).account ?: return
+        plotFetched = true
+        Thread {
+            val plot = try {
+                val o = org.json.JSONObject(Http.getText(Xtream.apiUrl(acc, "get_vod_info&vod_id=$id")))
+                o.optJSONObject("info")?.optString("plot").orEmpty().let { if (it == "null") "" else it.trim() }
+            } catch (_: Exception) { "" }
+            if (plot.isNotEmpty()) runOnUiThread {
+                currentPlot = plot
+                if (!isFinishing && pause.isShowing) showPause()
+            }
+        }.start()
     }
 
     /** Hoe langer je de knop ingedrukt houdt, hoe sneller het spoelen. */
@@ -247,6 +303,15 @@ class VodPlayerActivity : Activity() {
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        if (pause.isShowing) {
+            // Op het pauzescherm bedien je de knoppen; mediatoetsen gaan meteen verder.
+            when (keyCode) {
+                KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_MEDIA_PLAY -> { togglePause(); return true }
+                KeyEvent.KEYCODE_MEDIA_REWIND -> { seekBy(-10_000); return true }
+                KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> { seekBy(10_000); return true }
+            }
+            return super.onKeyDown(keyCode, event)
+        }
         when (keyCode) {
             KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_MEDIA_REWIND -> { seekBy(-step(event)); return true }
             KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> { seekBy(step(event)); return true }
@@ -270,8 +335,13 @@ class VodPlayerActivity : Activity() {
     private fun togglePause() {
         val p = player ?: return
         p.playWhenReady = !p.playWhenReady
-        if (!p.playWhenReady) savePosition()
-        showInfo()
+        if (!p.playWhenReady) {
+            savePosition()
+            showPause()
+        } else {
+            pause.hide()
+            showInfo()
+        }
     }
 
     override fun onDestroy() {

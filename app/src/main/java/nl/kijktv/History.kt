@@ -18,7 +18,9 @@ class WatchItem(
     var positionMs: Long = 0,
     var durationMs: Long = 0,
     var updatedAt: Long = System.currentTimeMillis(),
-    val seriesId: Int = 0
+    val seriesId: Int = 0,
+    /** Beschrijving voor het pauzescherm (wordt niet in de geschiedenis bewaard). */
+    val plot: String = ""
 ) {
     val isVideo get() = kind == MOVIE || kind == EPISODE || kind == CATCHUP
     val finished get() = durationMs > 0 && positionMs >= durationMs * 95 / 100
