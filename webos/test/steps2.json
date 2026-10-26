@@ -1,0 +1,10 @@
+[{"eval":"localStorage.setItem('ktv.account', JSON.stringify({type:'xtream',server:'http://tv.provider.nl:8080',user:'jan',pass:'geheim'})); localStorage.setItem('ktv.fav', JSON.stringify(['http://tv.provider.nl:8080/live/jan/geheim/103.m3u8','http://tv.provider.nl:8080/live/jan/geheim/100.m3u8','http://tv.provider.nl:8080/live/jan/geheim/112.m3u8'])); localStorage.setItem('ktv.history', JSON.stringify([{key:'mv:503',kind:'movie',title:'Inception',sub:'Actie',img:null,url:'x',pos:3600000,dur:8880000,at:Date.now()-3600000}])); location.reload();"},
+ {"wait":2500},
+ {"key":"ArrowDown"},{"shot":"09-home-row2"},
+ {"key":"ArrowUp","n":3},{"key":"ArrowRight","n":2},{"key":"Enter","wait":1500},{"shot":"10-guide"},
+ {"key":"ArrowRight","n":3,"wait":200},{"key":"ArrowDown","n":2,"wait":200},{"shot":"11-guide-moved"},
+ {"key":"Escape","wait":400},{"key":"ArrowRight"},{"key":"Enter","wait":1500},{"shot":"12-films"},
+ {"key":"ArrowRight","n":2},{"key":"Enter","wait":1200},{"shot":"13-film-detail"},
+ {"key":"Escape","wait":300},{"key":"Escape","wait":300},{"key":"ArrowRight"},{"key":"Enter","wait":1200},{"key":"ArrowRight"},{"key":"Enter","wait":1500},{"shot":"14-series"},
+ {"key":"Escape","wait":300},{"key":"Escape","wait":300},{"key":"ArrowRight"},{"key":"Enter","wait":800},{"shot":"15-history"}
+]

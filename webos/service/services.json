@@ -1,0 +1,10 @@
+{
+  "id": "nl.kijktv.app.service",
+  "description": "KijkTV netwerkdienst",
+  "services": [
+    {
+      "name": "nl.kijktv.app.service",
+      "description": "Haalt gegevens op bij de IPTV-server (zonder CORS-beperkingen)"
+    }
+  ]
+}

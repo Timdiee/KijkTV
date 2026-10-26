@@ -1,0 +1,8 @@
+[{"eval":"localStorage.setItem('ktv.account', JSON.stringify({type:'xtream',server:'http://tv.provider.nl:8080',user:'jan',pass:'geheim'})); localStorage.setItem('ktv.fav', JSON.stringify(['http://tv.provider.nl:8080/live/jan/geheim/103.m3u8','http://tv.provider.nl:8080/live/jan/geheim/100.m3u8','http://tv.provider.nl:8080/live/jan/geheim/112.m3u8'])); localStorage.setItem('ktv.history', JSON.stringify([{key:'mv:503',kind:'movie',title:'Inception',sub:'Actie',img:null,url:'x',pos:3600000,dur:8880000,at:Date.now()-3600000},{key:'live:http://tv.provider.nl:8080/live/jan/geheim/101.m3u8',kind:'live',title:'NPO 2',sub:'Sport',url:'http://tv.provider.nl:8080/live/jan/geheim/101.m3u8',at:Date.now()-7200000}])); location.reload();"},
+ {"wait":2500},{"shot":"03-home"},
+ {"key":"ArrowDown"},{"key":"ArrowRight","n":2},{"shot":"04-home-row2"},
+ {"key":"ArrowUp","n":3},{"key":"ArrowRight"},{"key":"Enter","wait":1200},{"shot":"05-live"},
+ {"key":"ArrowDown","n":2,"wait":300},{"shot":"06-live-sel"},
+ {"key":"Escape"},{"key":"ArrowRight"},{"key":"Enter","wait":1500},{"shot":"07-guide"},
+ {"key":"ArrowRight","n":2,"wait":200},{"key":"ArrowDown","wait":300},{"shot":"08-guide-move"}
+]

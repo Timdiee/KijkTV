@@ -1,0 +1,6 @@
+{
+  "name": "nl.kijktv.app.service",
+  "version": "1.0.0",
+  "description": "KijkTV netwerkdienst",
+  "main": "service.js"
+}

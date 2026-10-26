@@ -1,0 +1,16 @@
+{
+    "id": "nl.kijktv.app",
+    "version": "1.0.0",
+    "vendor": "KijkTV",
+    "type": "web",
+    "main": "index.html",
+    "title": "KijkTV",
+    "icon": "icon.png",
+    "largeIcon": "largeIcon.png",
+    "splashBackground": "splash.png",
+    "bgColor": "#0D1117",
+    "iconColor": "#0D1117",
+    "resolution": "1920x1080",
+    "disableBackHistoryAPI": true,
+    "transparent": false
+}

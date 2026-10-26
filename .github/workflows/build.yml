@@ -41,3 +41,36 @@ jobs:
           name: KijkTV (nieuwste versie)
           make_latest: true
           files: KijkTV.apk
+
+  lg-webos:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: LG-bouwtool installeren
+        run: npm install -g @webos-tools/cli
+
+      - name: LG-app (IPK) bouwen
+        run: |
+          ares-package webos/app webos/service --outdir out --no-minify
+          cp out/*.ipk KijkTV-LG.ipk
+          ls -la KijkTV-LG.ipk
+
+      - name: Bewaren als download
+        uses: actions/upload-artifact@v4
+        with:
+          name: KijkTV-LG-ipk
+          path: KijkTV-LG.ipk
+
+      - name: Toevoegen aan release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: nieuwste
+          name: KijkTV (nieuwste versie)
+          make_latest: true
+          files: KijkTV-LG.ipk

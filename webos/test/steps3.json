@@ -1,0 +1,10 @@
+[{"eval":"localStorage.setItem('ktv.account', JSON.stringify({type:'xtream',server:'http://tv.provider.nl:8080',user:'jan',pass:'geheim'})); localStorage.setItem('ktv.history', JSON.stringify([{key:'mv:503',kind:'movie',title:'De Oost',sub:'Nieuw',img:null,url:'x',pos:3600000,dur:8880000,at:Date.now()-3600000}])); location.reload();"},
+ {"wait":2200},
+ {"eval":"(function(){var P=HTMLMediaElement.prototype; Object.defineProperty(P,'paused',{get:function(){return !this._playing},configurable:true}); Object.defineProperty(P,'duration',{get:function(){return 8880},configurable:true}); P.play=function(){this._playing=true; var v=this; setTimeout(function(){v.dispatchEvent(new Event('playing'))},50); return Promise.resolve()}; P.pause=function(){this._playing=false}; Object.defineProperty(P,'currentTime',{get:function(){return this._t||3600},set:function(x){this._t=x},configurable:true}); P.load=function(){};})()"},
+ {"key":"Enter","wait":400},{"key":"Enter","wait":1200},{"shot":"16-vod-info"},
+ {"key":"Enter","wait":600},{"shot":"17-pause"},
+ {"key":"ArrowLeft","wait":200},{"key":"Enter","wait":300},{"shot":"18-pause-seek"},
+ {"key":"Escape","wait":400},{"key":"Escape","wait":400},
+ {"key":"ArrowDown","wait":200},{"key":"Enter","wait":1500},{"shot":"19-live-player"},
+ {"down":"Enter","hold":900},{"wait":500},{"shot":"20-live-pause"}
+]
