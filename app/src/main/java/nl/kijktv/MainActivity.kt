@@ -126,7 +126,7 @@ class MainActivity : Activity() {
         findViewById<Button>(R.id.tabMovies).setOnClickListener { releasePreview(); startActivity(MediaActivity.movies(this)) }
         findViewById<Button>(R.id.tabSeries).setOnClickListener { releasePreview(); startActivity(MediaActivity.series(this)) }
         findViewById<Button>(R.id.tabHistory).setOnClickListener { releasePreview(); startActivity(Intent(this, HistoryActivity::class.java)) }
-        findViewById<Button>(R.id.tabAccount).setOnClickListener { openLogin() }
+        findViewById<Button>(R.id.tabAccount).setOnClickListener { showAccountMenu() }
 
         search.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
@@ -410,7 +410,7 @@ class MainActivity : Activity() {
         previewUrl = c.url
         previewHint.text = "Laden…"
         previewHint.visibility = View.VISIBLE
-        p.setMediaItem(Players.item(c.url))
+        p.setMediaItem(Players.item(Players.applyFormat(c.url)))
         p.prepare()
         p.playWhenReady = true
     }
@@ -442,6 +442,85 @@ class MainActivity : Activity() {
         val idx = focused?.let { f -> current.indexOf(f) }?.takeIf { it >= 0 } ?: 0
         val title = if (search.text.isNotEmpty()) "Zoekresultaten" else groupLabel(currentGroup)
         startActivity(GuideActivity.open(this, idx, title))
+    }
+
+    private fun dialog() = AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert)
+
+    private fun showAccountMenu() {
+        val mode = if (prefs.playMode == Prefs.MODE_FAST) "Snel" else "Soepel"
+        val format = when (prefs.streamFormat) {
+            Prefs.FORMAT_TS -> "MPEG-TS"
+            Prefs.FORMAT_HLS -> "HLS"
+            else -> "Automatisch"
+        }
+        val acc = prefs.account
+        val who = when {
+            acc == null -> "Niet ingelogd"
+            acc.isXtream -> "Ingelogd als ${acc.user}" + (Repo.accountInfo?.let { "  ·  $it" } ?: "")
+            else -> "M3U-playlist"
+        }
+        dialog()
+            .setTitle(who)
+            .setItems(
+                arrayOf(
+                    "🔑  Inloggegevens wijzigen",
+                    "▶  Afspelen: $mode",
+                    "📡  Streamtype: $format",
+                    "📅  Programmagids nu vernieuwen",
+                    "🔄  Zenderlijst vernieuwen"
+                )
+            ) { _, which ->
+                when (which) {
+                    0 -> openLogin()
+                    1 -> choosePlayMode()
+                    2 -> chooseFormat()
+                    3 -> {
+                        Epg.clear()
+                        Repo.epgUrl?.let { url ->
+                            try { java.io.File(filesDir, "epg.tsv").delete() } catch (_: Exception) { }
+                            ensureEpg()
+                            if (url.isNotEmpty()) Toast.makeText(this, "Programmagids wordt vernieuwd…", Toast.LENGTH_SHORT).show()
+                        } ?: Toast.makeText(this, "Je aanbieder levert geen programmagids", Toast.LENGTH_LONG).show()
+                    }
+                    4 -> prefs.account?.let { refresh(it) }
+                }
+            }
+            .show()
+    }
+
+    private fun choosePlayMode() {
+        val options = arrayOf(
+            "Soepel  (aanbevolen): minder haperen, beeld een paar seconden achter op live",
+            "Snel: dichter op live, maar meer kans op haperen"
+        )
+        val cur = if (prefs.playMode == Prefs.MODE_FAST) 1 else 0
+        dialog()
+            .setTitle("Afspelen")
+            .setSingleChoiceItems(options, cur) { d, which ->
+                prefs.playMode = if (which == 1) Prefs.MODE_FAST else Prefs.MODE_SMOOTH
+                d.dismiss()
+                releasePreview()
+                Toast.makeText(this, "Opgeslagen", Toast.LENGTH_SHORT).show()
+            }
+            .show()
+    }
+
+    private fun chooseFormat() {
+        val options = arrayOf(
+            "Automatisch (aanbevolen)",
+            "MPEG-TS: meestal het soepelst bij IPTV",
+            "HLS: probeer dit als zenders haperen of niet starten"
+        )
+        val cur = when (prefs.streamFormat) { Prefs.FORMAT_TS -> 1; Prefs.FORMAT_HLS -> 2; else -> 0 }
+        dialog()
+            .setTitle("Streamtype")
+            .setSingleChoiceItems(options, cur) { d, which ->
+                prefs.streamFormat = when (which) { 1 -> Prefs.FORMAT_TS; 2 -> Prefs.FORMAT_HLS; else -> Prefs.FORMAT_AUTO }
+                d.dismiss()
+                releasePreview()
+                Toast.makeText(this, "Opgeslagen", Toast.LENGTH_SHORT).show()
+            }
+            .show()
     }
 
     private fun openLogin() {
@@ -479,7 +558,7 @@ class MainActivity : Activity() {
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         when (keyCode) {
-            KeyEvent.KEYCODE_MENU -> { openLogin(); return true }
+            KeyEvent.KEYCODE_MENU -> { showAccountMenu(); return true }
             KeyEvent.KEYCODE_GUIDE -> { openGuide(); return true }
         }
         return super.onKeyDown(keyCode, event)

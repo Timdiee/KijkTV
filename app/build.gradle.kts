@@ -11,8 +11,8 @@ android {
         applicationId = "nl.kijktv"
         minSdk = 21
         targetSdk = 34
-        versionCode = 2
-        versionName = "2.0"
+        versionCode = 3
+        versionName = "2.1"
     }
 
     signingConfigs {
@@ -44,6 +44,7 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer:$media3")
     implementation("androidx.media3:media3-exoplayer-hls:$media3")
     implementation("androidx.media3:media3-ui:$media3")
+    implementation("androidx.media3:media3-extractor:$media3")
     implementation("androidx.recyclerview:recyclerview:1.3.2")
     implementation("io.coil-kt:coil:2.6.0")
     implementation("androidx.annotation:annotation:1.8.2")

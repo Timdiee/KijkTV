@@ -7,8 +7,11 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.extractor.DefaultExtractorsFactory
+import androidx.media3.extractor.ts.DefaultTsPayloadReaderFactory
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
@@ -331,6 +334,24 @@ class Prefs(ctx: Context) {
         get() = sp.getString("last", null)
         set(v) { sp.edit().putString("last", v).apply() }
 
+    /** "smooth" (meer buffer) of "fast" (dichter op live). */
+    var playMode: String
+        get() = sp.getString("mode", MODE_SMOOTH) ?: MODE_SMOOTH
+        set(v) { sp.edit().putString("mode", v).apply() }
+
+    /** "auto", "ts" of "hls". */
+    var streamFormat: String
+        get() = sp.getString("format", FORMAT_AUTO) ?: FORMAT_AUTO
+        set(v) { sp.edit().putString("format", v).apply() }
+
+    companion object {
+        const val MODE_SMOOTH = "smooth"
+        const val MODE_FAST = "fast"
+        const val FORMAT_AUTO = "auto"
+        const val FORMAT_TS = "ts"
+        const val FORMAT_HLS = "hls"
+    }
+
     fun favorites(): Set<String> = sp.getStringSet("fav", null)?.toSet() ?: emptySet()
 
     /** Geeft true terug als de zender nu favoriet is. */
@@ -344,25 +365,75 @@ class Prefs(ctx: Context) {
 
 @androidx.annotation.OptIn(UnstableApi::class)
 object Players {
+    /** Afspeelinstellingen (worden bij elke nieuwe speler uit de voorkeuren gelezen). */
+    @Volatile private var fast = false
+    @Volatile private var format = Prefs.FORMAT_AUTO
+
     fun create(ctx: Context): ExoPlayer {
+        val prefs = Prefs(ctx)
+        fast = prefs.playMode == Prefs.MODE_FAST
+        format = prefs.streamFormat
+
         val http = DefaultHttpDataSource.Factory()
             .setUserAgent(USER_AGENT)
             .setAllowCrossProtocolRedirects(true)
             .setConnectTimeoutMs(15000)
-            .setReadTimeoutMs(20000)
+            .setReadTimeoutMs(30000)
+            .setKeepPostFor302Redirects(true)
         val dataSource = DefaultDataSource.Factory(ctx, http)
-        val loadControl = DefaultLoadControl.Builder()
-            .setBufferDurationsMs(15000, 50000, 1500, 3000)
-            .build()
-        return ExoPlayer.Builder(ctx)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSource))
+
+        // IPTV-streams (MPEG-TS) beginnen vaak niet met een "schoon" beeld: dit laat ze sneller en
+        // met minder haperingen starten.
+        val extractors = DefaultExtractorsFactory()
+            .setTsExtractorFlags(
+                DefaultTsPayloadReaderFactory.FLAG_ALLOW_NON_IDR_KEYFRAMES or
+                    DefaultTsPayloadReaderFactory.FLAG_DETECT_ACCESS_UNITS
+            )
+
+        val loadControl = if (fast) {
+            DefaultLoadControl.Builder()
+                .setBufferDurationsMs(8_000, 20_000, 1_000, 2_000)
+                .setPrioritizeTimeOverSizeThresholds(true)
+                .build()
+        } else {
+            // Soepel: ruime buffer, zodat korte haperingen van de server niet in beeld komen.
+            DefaultLoadControl.Builder()
+                .setBufferDurationsMs(30_000, 60_000, 2_500, 5_000)
+                .setPrioritizeTimeOverSizeThresholds(true)
+                .build()
+        }
+
+        // Valt de videochip niet mee, dan automatisch een andere decoder proberen.
+        val renderers = DefaultRenderersFactory(ctx).setEnableDecoderFallback(true)
+
+        return ExoPlayer.Builder(ctx, renderers)
+            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSource, extractors))
             .setLoadControl(loadControl)
             .build()
+    }
+
+    /** Past het streamtype (TS of HLS) toe op live-links van Xtream-servers. */
+    fun applyFormat(url: String): String {
+        if (!url.contains("/live/")) return url
+        return when (format) {
+            Prefs.FORMAT_HLS -> if (url.endsWith(".ts")) url.removeSuffix(".ts") + ".m3u8" else url
+            Prefs.FORMAT_TS -> if (url.endsWith(".m3u8")) url.removeSuffix(".m3u8") + ".ts" else url
+            else -> url
+        }
     }
 
     fun item(url: String): MediaItem {
         val b = MediaItem.Builder().setUri(url)
         if (url.lowercase().contains("m3u8")) b.setMimeType(MimeTypes.APPLICATION_M3U8)
+        if (fast) {
+            // Bij HLS dicht op live blijven en een achterstand langzaam inhalen.
+            b.setLiveConfiguration(
+                MediaItem.LiveConfiguration.Builder()
+                    .setTargetOffsetMs(6_000)
+                    .setMaxPlaybackSpeed(1.04f)
+                    .build()
+            )
+        }
         return b.build()
     }
 }

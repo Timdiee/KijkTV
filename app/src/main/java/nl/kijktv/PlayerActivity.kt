@@ -213,7 +213,7 @@ class PlayerActivity : Activity() {
         if (catchup == null) prefs.lastChannelUrl = ch.url
         handler.removeCallbacks(recordLive)
         if (catchup == null) handler.postDelayed(recordLive, 10_000)
-        start(url ?: ch.url)
+        start(url ?: Players.applyFormat(ch.url))
         showInfo()
     }
 
