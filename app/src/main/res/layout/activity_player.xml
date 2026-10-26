@@ -202,7 +202,10 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="10dp"
-                android:text="⏸  Gepauzeerd"
+                android:drawableStart="@drawable/ic_pause"
+                android:drawablePadding="8dp"
+                android:gravity="center_vertical"
+                android:text="Gepauzeerd"
                 android:textColor="#FFFFFF"
                 android:textSize="15sp" />
 
@@ -245,11 +248,11 @@
                 android:layout_marginTop="20dp"
                 android:orientation="horizontal">
 
-                <Button android:id="@+id/pauseBack" style="@style/PauseButton" android:text="⏪  10 sec" />
-                <Button android:id="@+id/pausePlay" style="@style/PauseButton" android:text="▶  Verder kijken" />
-                <Button android:id="@+id/pauseFwd" style="@style/PauseButton" android:text="10 sec  ⏩" />
-                <Button android:id="@+id/pauseRestart" style="@style/PauseButton" android:text="⟲  Vanaf begin" />
-                <Button android:id="@+id/pauseNext" style="@style/PauseButton" android:text="⏭  Volgende aflevering" android:visibility="gone" />
+                <Button android:id="@+id/pauseBack" style="@style/PauseButton" android:drawableStart="@drawable/ic_rewind" android:drawablePadding="8dp" android:drawableTint="@color/round_btn_text" android:text="10 sec" />
+                <Button android:id="@+id/pausePlay" style="@style/PauseButton" android:drawableStart="@drawable/ic_play" android:drawablePadding="8dp" android:drawableTint="@color/round_btn_text" android:text="Verder kijken" />
+                <Button android:id="@+id/pauseFwd" style="@style/PauseButton" android:drawableStart="@drawable/ic_forward" android:drawablePadding="8dp" android:drawableTint="@color/round_btn_text" android:text="10 sec" />
+                <Button android:id="@+id/pauseRestart" style="@style/PauseButton" android:drawableStart="@drawable/ic_replay" android:drawablePadding="8dp" android:drawableTint="@color/round_btn_text" android:text="Vanaf begin" />
+                <Button android:id="@+id/pauseNext" style="@style/PauseButton" android:drawableStart="@drawable/ic_skip_next" android:drawablePadding="8dp" android:drawableTint="@color/round_btn_text" android:text="Volgende aflevering" android:visibility="gone" />
             </LinearLayout>
         </LinearLayout>
     </FrameLayout>

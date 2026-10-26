@@ -281,7 +281,7 @@ class MainActivity : Activity() {
 
     private fun rebuildGroups() {
         val items = ArrayList<GroupItem>()
-        items.add(GroupItem(KEY_FAV, "★  Favorieten", favoriteChannels().size))
+        items.add(GroupItem(KEY_FAV, "Favorieten", favoriteChannels().size))
         items.add(GroupItem(KEY_ALL, "Alle zenders", Repo.all.size))
         for ((name, chans) in byGroup) items.add(GroupItem(name, name, chans.size))
         groupAdapter.submit(items)
@@ -339,7 +339,7 @@ class MainActivity : Activity() {
         val nowFav = prefs.toggleFavorite(c.url)
         Toast.makeText(
             this,
-            if (nowFav) "★ ${c.name} toegevoegd aan favorieten" else "${c.name} verwijderd uit favorieten",
+            if (nowFav) "${c.name} toegevoegd aan favorieten" else "${c.name} verwijderd uit favorieten",
             Toast.LENGTH_SHORT
         ).show()
         rebuildGroups()
@@ -355,7 +355,7 @@ class MainActivity : Activity() {
 
     private fun showInfo(c: Channel) {
         nowName.text = c.name
-        nowGroup.text = if (c.archiveDays > 0) "${c.group}  ·  ⟲ ${c.archiveDays} dag(en) terugkijken" else c.group
+        nowGroup.text = if (c.archiveDays > 0) "${c.group}  ·  ${c.archiveDays} ${if (c.archiveDays == 1) "dag" else "dagen"} terugkijken" else c.group
         val now = Epg.now(c)
         val next = Epg.next(c)
         if (now == null && next == null) {
@@ -441,86 +441,16 @@ class MainActivity : Activity() {
         Repo.playList = current
         val idx = focused?.let { f -> current.indexOf(f) }?.takeIf { it >= 0 } ?: 0
         val title = if (search.text.isNotEmpty()) "Zoekresultaten" else groupLabel(currentGroup)
-        startActivity(GuideActivity.open(this, idx, title))
+        startActivity(GuideGridActivity.open(this, idx, title))
     }
-
-    private fun dialog() = AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert)
 
     private fun showAccountMenu() {
-        val mode = if (prefs.playMode == Prefs.MODE_FAST) "Snel" else "Soepel"
-        val format = when (prefs.streamFormat) {
-            Prefs.FORMAT_TS -> "MPEG-TS"
-            Prefs.FORMAT_HLS -> "HLS"
-            else -> "Automatisch"
-        }
-        val acc = prefs.account
-        val who = when {
-            acc == null -> "Niet ingelogd"
-            acc.isXtream -> "Ingelogd als ${acc.user}" + (Repo.accountInfo?.let { "  ·  $it" } ?: "")
-            else -> "M3U-playlist"
-        }
-        dialog()
-            .setTitle(who)
-            .setItems(
-                arrayOf(
-                    "🔑  Inloggegevens wijzigen",
-                    "▶  Afspelen: $mode",
-                    "📡  Streamtype: $format",
-                    "📅  Programmagids nu vernieuwen",
-                    "🔄  Zenderlijst vernieuwen"
-                )
-            ) { _, which ->
-                when (which) {
-                    0 -> openLogin()
-                    1 -> choosePlayMode()
-                    2 -> chooseFormat()
-                    3 -> {
-                        Epg.clear()
-                        Repo.epgUrl?.let { url ->
-                            try { java.io.File(filesDir, "epg.tsv").delete() } catch (_: Exception) { }
-                            ensureEpg()
-                            if (url.isNotEmpty()) Toast.makeText(this, "Programmagids wordt vernieuwd…", Toast.LENGTH_SHORT).show()
-                        } ?: Toast.makeText(this, "Je aanbieder levert geen programmagids", Toast.LENGTH_LONG).show()
-                    }
-                    4 -> prefs.account?.let { refresh(it) }
-                }
-            }
-            .show()
-    }
-
-    private fun choosePlayMode() {
-        val options = arrayOf(
-            "Soepel  (aanbevolen): minder haperen, beeld een paar seconden achter op live",
-            "Snel: dichter op live, maar meer kans op haperen"
+        Settings.show(
+            this,
+            onReloadChannels = { prefs.account?.let { refresh(it) } },
+            onReloadEpg = { ensureEpg() },
+            onPlaybackChanged = { releasePreview() }
         )
-        val cur = if (prefs.playMode == Prefs.MODE_FAST) 1 else 0
-        dialog()
-            .setTitle("Afspelen")
-            .setSingleChoiceItems(options, cur) { d, which ->
-                prefs.playMode = if (which == 1) Prefs.MODE_FAST else Prefs.MODE_SMOOTH
-                d.dismiss()
-                releasePreview()
-                Toast.makeText(this, "Opgeslagen", Toast.LENGTH_SHORT).show()
-            }
-            .show()
-    }
-
-    private fun chooseFormat() {
-        val options = arrayOf(
-            "Automatisch (aanbevolen)",
-            "MPEG-TS: meestal het soepelst bij IPTV",
-            "HLS: probeer dit als zenders haperen of niet starten"
-        )
-        val cur = when (prefs.streamFormat) { Prefs.FORMAT_TS -> 1; Prefs.FORMAT_HLS -> 2; else -> 0 }
-        dialog()
-            .setTitle("Streamtype")
-            .setSingleChoiceItems(options, cur) { d, which ->
-                prefs.streamFormat = when (which) { 1 -> Prefs.FORMAT_TS; 2 -> Prefs.FORMAT_HLS; else -> Prefs.FORMAT_AUTO }
-                d.dismiss()
-                releasePreview()
-                Toast.makeText(this, "Opgeslagen", Toast.LENGTH_SHORT).show()
-            }
-            .show()
     }
 
     private fun openLogin() {

@@ -77,9 +77,9 @@ class ChannelAdapter(
         val number: TextView = v.findViewById(R.id.number)
         val logo: ImageView = v.findViewById(R.id.logo)
         val name: TextView = v.findViewById(R.id.name)
-        val star: TextView = v.findViewById(R.id.star)
+        val star: View = v.findViewById(R.id.star)
         val nowLine: TextView = v.findViewById(R.id.nowLine)
-        val archive: TextView = v.findViewById(R.id.archive)
+        val archive: View = v.findViewById(R.id.archive)
     }
 
     fun submit(list: List<Channel>, favs: Set<String>) {
@@ -213,9 +213,9 @@ class ProgrammeAdapter(
         val c = channel
         val catchup = c != null && Xtream.canCatchup(c, p, t)
         h.badge.text = when {
-            isNow && catchup -> "NU  ·  ⟲ vanaf begin"
+            isNow && catchup -> "NU  ·  VANAF BEGIN"
             isNow -> "NU"
-            catchup -> "⟲ terugkijken"
+            catchup -> "TERUGKIJKEN"
             else -> ""
         }
         h.row.setOnFocusChangeListener { _, has ->

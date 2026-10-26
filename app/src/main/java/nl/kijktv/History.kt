@@ -150,8 +150,8 @@ object History {
                 .setTitle(item.title)
                 .setItems(
                     arrayOf(
-                        "▶  Verder kijken vanaf ${clock(saved.positionMs)}",
-                        "⟲  Opnieuw beginnen"
+                        "Verder kijken vanaf ${clock(saved.positionMs)}",
+                        "Opnieuw beginnen"
                     )
                 ) { _, which ->
                     activity.startActivity(VodPlayerActivity.intent(activity, item, if (which == 0) saved.positionMs else 0))

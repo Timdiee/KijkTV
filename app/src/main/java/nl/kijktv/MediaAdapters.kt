@@ -99,11 +99,11 @@ class EpisodeAdapter(
         val w = progressOf(e)
         when {
             w != null && w.finished -> {
-                h.badge.text = "✓ gezien"
+                h.badge.text = "Gezien"
                 h.progress.visibility = View.GONE
             }
             w != null && w.resumable -> {
-                h.badge.text = "▶ ${History.clock(w.positionMs)}"
+                h.badge.text = History.clock(w.positionMs)
                 h.progress.progress = w.progress
                 h.progress.visibility = View.VISIBLE
             }
@@ -148,19 +148,19 @@ class HistoryAdapter(
     override fun onBindViewHolder(h: VH, position: Int) {
         val w = items[position]
         val icon = when (w.kind) {
-            WatchItem.LIVE -> "📺 "
-            WatchItem.MOVIE -> "🎬 "
-            WatchItem.EPISODE -> "🎞 "
-            WatchItem.CATCHUP -> "⟲ "
+            WatchItem.LIVE -> "Live tv  ·  "
+            WatchItem.MOVIE -> "Film  ·  "
+            WatchItem.EPISODE -> "Serie  ·  "
+            WatchItem.CATCHUP -> "Terugkijken  ·  "
             else -> ""
         }
-        h.title.text = icon + w.title
+        h.title.text = w.title
         val state = when {
-            w.finished -> "  ·  ✓ uitgekeken"
+            w.finished -> "  ·  uitgekeken"
             w.resumable -> "  ·  gestopt bij ${History.clock(w.positionMs)}"
             else -> ""
         }
-        h.sub.text = w.subtitle + state
+        h.sub.text = icon + w.subtitle + state
         if (w.resumable) {
             h.progress.progress = w.progress
             h.progress.visibility = View.VISIBLE

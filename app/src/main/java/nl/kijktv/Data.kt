@@ -8,6 +8,7 @@ import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
+import androidx.media3.exoplayer.mediacodec.MediaCodecUtil
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.extractor.DefaultExtractorsFactory
@@ -344,7 +345,14 @@ class Prefs(ctx: Context) {
         get() = sp.getString("format", FORMAT_AUTO) ?: FORMAT_AUTO
         set(v) { sp.edit().putString("format", v).apply() }
 
+    /** "auto" of "software": welke videodecoder eerst geprobeerd wordt. */
+    var decoder: String
+        get() = sp.getString("decoder", DECODER_AUTO) ?: DECODER_AUTO
+        set(v) { sp.edit().putString("decoder", v).apply() }
+
     companion object {
+        const val DECODER_AUTO = "auto"
+        const val DECODER_SOFTWARE = "software"
         const val MODE_SMOOTH = "smooth"
         const val MODE_FAST = "fast"
         const val FORMAT_AUTO = "auto"
@@ -405,6 +413,13 @@ object Players {
 
         // Valt de videochip niet mee, dan automatisch een andere decoder proberen.
         val renderers = DefaultRenderersFactory(ctx).setEnableDecoderFallback(true)
+        if (prefs.decoder == Prefs.DECODER_SOFTWARE) {
+            // Software-decoders eerst: helpt op emulators en kastjes met een haperende videochip.
+            renderers.setMediaCodecSelector { mime, secure, tunneling ->
+                MediaCodecUtil.getDecoderInfos(mime, secure, tunneling)
+                    .sortedBy { if (it.softwareOnly) 0 else 1 }
+            }
+        }
 
         return ExoPlayer.Builder(ctx, renderers)
             .setMediaSourceFactory(DefaultMediaSourceFactory(dataSource, extractors))

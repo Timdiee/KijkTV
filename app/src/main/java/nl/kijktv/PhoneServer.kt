@@ -68,9 +68,9 @@ class PhoneServer(private val onForm: (Map<String, String>) -> Boolean) {
             val method = requestLine.substringBefore(' ')
             val html = if (method == "POST") {
                 if (onForm(parseForm(body))) {
-                    page("✅ Verstuurd! Kijk op je TV: daar zie je of het inloggen gelukt is.")
+                    page("Verstuurd. Kijk op je TV: daar zie je of het inloggen gelukt is.")
                 } else {
-                    page("⚠️ Vul server-link, gebruikersnaam én wachtwoord in (of een M3U-link).")
+                    page("Vul server-link, gebruikersnaam én wachtwoord in (of een M3U-link).")
                 }
             } else {
                 page(null)

@@ -22,15 +22,15 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="14dp"
-            android:text="KijkTV"
+            android:text="Live tv"
             android:textColor="@color/text"
             android:textSize="22sp"
             android:textStyle="bold" />
 
-        <Button android:id="@+id/tabGuide" style="@style/Tab" android:text="📅 Gids" />
-        <Button android:id="@+id/tabMovies" style="@style/Tab" android:text="🎬 Films" />
-        <Button android:id="@+id/tabSeries" style="@style/Tab" android:text="🎞 Series" />
-        <Button android:id="@+id/tabHistory" style="@style/Tab" android:text="🕘 Geschiedenis" />
+        <Button android:id="@+id/tabGuide" style="@style/NavTab" android:text="Tv-gids" />
+        <Button android:id="@+id/tabMovies" style="@style/NavTab" android:text="Films" />
+        <Button android:id="@+id/tabSeries" style="@style/NavTab" android:text="Series" />
+        <Button android:id="@+id/tabHistory" style="@style/NavTab" android:text="Geschiedenis" />
 
         <TextView
             android:id="@+id/status"
@@ -45,7 +45,14 @@
             android:textColor="@color/muted"
             android:textSize="12sp" />
 
-        <Button android:id="@+id/tabAccount" style="@style/Tab" android:layout_marginEnd="0dp" android:text="⚙ Account" />
+        <ImageButton
+            android:id="@+id/tabAccount"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
+            android:background="@drawable/nav_bg"
+            android:contentDescription="Instellingen"
+            android:src="@drawable/ic_settings"
+            android:tint="@color/nav_text" />
     </LinearLayout>
 
     <LinearLayout
@@ -77,7 +84,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="40dp"
                 android:background="@drawable/field_bg"
-                android:hint="🔍  Zoek een zender…"
+                android:hint="Zoek een zender"
+                android:drawableStart="@drawable/ic_search"
+                android:drawablePadding="10dp"
+                android:drawableTint="@color/muted"
                 android:imeOptions="actionSearch|flagNoExtractUi"
                 android:inputType="text"
                 android:maxLines="1"
@@ -216,7 +226,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:lineSpacingExtra="2dp"
-                android:text="OK kijken  ·  OK lang = favoriet\n▲▼ zappen  ·  ⟲ = terugkijken via Gids"
+                android:text="Houd OK ingedrukt om een zender aan je favorieten toe te voegen"
                 android:textColor="@color/muted"
                 android:textSize="11sp" />
         </LinearLayout>

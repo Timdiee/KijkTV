@@ -82,7 +82,7 @@ class GuideActivity : Activity() {
             },
             onLongClick = { _, c ->
                 val fav = prefs.toggleFavorite(c.url)
-                Toast.makeText(this, if (fav) "★ toegevoegd aan favorieten" else "Verwijderd uit favorieten", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, if (fav) "Toegevoegd aan favorieten" else "Verwijderd uit favorieten", Toast.LENGTH_SHORT).show()
                 channelAdapter.updateFavorites(prefs.favorites())
             }
         )

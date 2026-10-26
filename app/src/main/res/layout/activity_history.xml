@@ -25,7 +25,7 @@
             android:textStyle="bold" />
 
         <Button android:id="@+id/fAll" style="@style/Tab" android:text="Alles" />
-        <Button android:id="@+id/fResume" style="@style/Tab" android:text="▶ Verder kijken" />
+        <Button android:id="@+id/fResume" style="@style/Tab" android:text="Verder kijken" />
         <Button android:id="@+id/fVod" style="@style/Tab" android:text="Films &amp; series" />
         <Button android:id="@+id/fLive" style="@style/Tab" android:text="Live tv" />
 
@@ -34,7 +34,7 @@
             android:layout_height="1dp"
             android:layout_weight="1" />
 
-        <Button android:id="@+id/clearBtn" style="@style/Tab" android:layout_marginEnd="0dp" android:text="🗑 Geschiedenis wissen" />
+        <Button android:id="@+id/clearBtn" style="@style/Tab" android:layout_marginEnd="0dp" android:drawableStart="@drawable/ic_delete" android:drawablePadding="8dp" android:drawableTint="@color/nav_text" android:text="Geschiedenis wissen" />
     </LinearLayout>
 
     <TextView
@@ -43,7 +43,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:layout_marginBottom="6dp"
-        android:text="OK = afspelen  ·  OK lang ingedrukt = verwijderen uit geschiedenis"
+        android:text="Houd OK ingedrukt om iets uit je geschiedenis te verwijderen"
         android:textColor="@color/muted"
         android:textSize="12sp" />
 

@@ -55,7 +55,7 @@ class MediaActivity : Activity() {
         prefs = Prefs(this)
         isSeries = intent.getBooleanExtra("series", false)
 
-        findViewById<TextView>(R.id.title).text = if (isSeries) "🎞 Series" else "🎬 Films"
+        findViewById<TextView>(R.id.title).text = if (isSeries) "Series" else "Films"
         catsView = findViewById(R.id.cats)
         grid = findViewById(R.id.grid)
         loadingBox = findViewById(R.id.loadingBox)
@@ -158,7 +158,7 @@ class MediaActivity : Activity() {
     private fun rebuildCats() {
         val items = ArrayList<GroupItem>()
         val rc = resumeCount()
-        if (rc > 0) items.add(GroupItem(KEY_RESUME, "▶  Verder kijken", rc))
+        if (rc > 0) items.add(GroupItem(KEY_RESUME, "Verder kijken", rc))
         if (isSeries) {
             items.add(GroupItem(KEY_ALL, "Alle series", seriesList.size))
             val counts = seriesList.groupingBy { it.category }.eachCount()

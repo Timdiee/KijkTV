@@ -22,8 +22,8 @@ import coil.load
 
 /**
  * Volledig scherm. Twee standen:
- *  - live: ▲▼ zappen, ◀▶ terugspoelen als de stream dat toestaat, ◀◀ = programma vanaf begin (catch-up)
- *  - terugkijken: ◀▶ 30 sec spoelen, OK pauze, ▲▼ terug naar live tv
+ *  - live: omhoog/omlaag zappen, links/rechts terugspoelen als de stream dat toestaat, 2x links = vanaf begin
+ *  - terugkijken: links/rechts spoelen, OK pauze
  */
 class PlayerActivity : Activity() {
 
@@ -140,9 +140,9 @@ class PlayerActivity : Activity() {
             }
             loadingView.visibility = View.GONE
             errorView.text = if (catchup != null)
-                "Dit programma is niet terug te kijken.\n\n▲ ▼  live tv     OK  opnieuw proberen"
+                "Dit programma is niet terug te kijken.\nDruk op OK om het opnieuw te proberen."
             else
-                "Deze zender speelt nu niet af.\n\n▲ ▼  andere zender     OK  opnieuw proberen"
+                "Deze zender speelt nu niet af.\nDruk op OK om het opnieuw te proberen, of kies een andere zender."
             errorView.visibility = View.VISIBLE
         }
     }
@@ -264,14 +264,14 @@ class PlayerActivity : Activity() {
         val cu = catchup
         val p = player
         if (cu != null) {
-            infoNow.text = "⟲ Terugkijken  ·  ${Fmt.day(cu.start)} ${Fmt.range(cu)}  ·  ${cu.title}"
+            infoNow.text = "Terugkijken  ·  ${Fmt.day(cu.start)} ${Fmt.range(cu)}  ·  ${cu.title}"
             val dur = p?.duration ?: C.TIME_UNSET
             val pos = p?.currentPosition ?: 0L
             val total = if (dur != C.TIME_UNSET && dur > 0) dur else (cu.stop - cu.start)
             infoProgress.progress = if (total > 0) ((pos * 1000) / total).toInt().coerceIn(0, 1000) else 0
             infoProgress.visibility = View.VISIBLE
-            infoNext.text = "${clock(pos)} / ${clock(total)}" + if (p?.playWhenReady == false) "   ⏸ gepauzeerd" else ""
-            infoHint.text = "◀ ▶  30 sec spoelen   ·   OK  pauze   ·   ▲ ▼  terug naar live"
+            infoNext.text = "${clock(pos)} / ${clock(total)}" + if (p?.playWhenReady == false) "   ·   Gepauzeerd" else ""
+            infoHint.text = ""
             return
         }
         val now = Epg.now(ch)
@@ -288,9 +288,9 @@ class PlayerActivity : Activity() {
         val canSeek = liveSeekable()
         val canRestart = now != null && Xtream.canCatchup(ch, now)
         infoHint.text = when {
-            canSeek && canRestart -> "◀  terugspoelen   ·   ◀ 2× snel  = programma vanaf begin"
-            canSeek -> "◀ ▶  terugspoelen / vooruit"
-            canRestart -> "◀ 2× drukken  = dit programma vanaf het begin kijken"
+            canSeek && canRestart -> "Terugspoelen mogelijk  ·  2x links: vanaf begin"
+            canSeek -> "Terugspoelen mogelijk"
+            canRestart -> "Druk 2x op links om dit programma vanaf het begin te kijken"
             else -> ""
         }.let { if (it.isEmpty()) "OK lang ingedrukt  ·  pauze" else "$it   ·   OK lang = pauze" }
     }
@@ -404,7 +404,7 @@ class PlayerActivity : Activity() {
             }
             KeyEvent.KEYCODE_INFO -> { showInfo(); return true }
             KeyEvent.KEYCODE_GUIDE -> {
-                startActivity(GuideActivity.open(this, index))
+                startActivity(GuideGridActivity.open(this, index))
                 return true
             }
         }
@@ -430,7 +430,7 @@ class PlayerActivity : Activity() {
             if (next != null) append("  ·  straks: ${next.title}")
         }
         pause.show(
-            heading = "📺 Live tv",
+            heading = "LIVE TV",
             titleText = now?.title?.ifEmpty { null } ?: ch.name,
             subText = sub,
             description = now?.desc.orEmpty(),

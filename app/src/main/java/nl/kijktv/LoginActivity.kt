@@ -121,7 +121,7 @@ class LoginActivity : Activity() {
                     Repo.setChannels(list)
                     setBusy(false)
                     startActivity(
-                        Intent(this, MainActivity::class.java)
+                        Intent(this, HomeActivity::class.java)
                             .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
                     )
                     finish()

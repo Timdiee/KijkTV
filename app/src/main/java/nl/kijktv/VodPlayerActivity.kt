@@ -22,7 +22,7 @@ import coil.load
 
 /**
  * Speler voor films, afleveringen en teruggekeken uitzendingen.
- * ◀ ▶ spoelen (ingedrukt houden = sneller), OK pauze, positie wordt onthouden.
+ * Links/rechts spoelen (ingedrukt houden = sneller), OK pauze, positie wordt onthouden.
  */
 class VodPlayerActivity : Activity() {
 
@@ -226,7 +226,7 @@ class VodPlayerActivity : Activity() {
         val d = p?.duration ?: C.TIME_UNSET
         val dur = if (d != C.TIME_UNSET && d > 0) d else item.durationMs
         val kindLabel = when (item.kind) {
-            WatchItem.CATCHUP -> "⟲ Terugkijken  ·  "
+            WatchItem.CATCHUP -> "Terugkijken  ·  "
             WatchItem.EPISODE -> ""
             else -> ""
         }
@@ -235,10 +235,9 @@ class VodPlayerActivity : Activity() {
         infoProgress.visibility = View.VISIBLE
         val paused = p?.playWhenReady == false
         infoNext.text = "${History.clock(pos)} / ${if (dur > 0) History.clock(dur) else "--:--"}" +
-            if (paused) "    ⏸ gepauzeerd" else ""
+            if (paused) "   ·   Gepauzeerd" else ""
         val next = nextEpisode()
-        infoHint.text = "◀ ▶  spoelen   ·   OK  pauze" +
-            if (next != null) "   ·   daarna: ${Vod.episodeLabel(next)}" else ""
+        infoHint.text = if (next != null) "Hierna: ${Vod.episodeLabel(next)}  ${next.title}" else ""
     }
 
     private fun durationOf(p: Player): Long {
@@ -261,9 +260,9 @@ class VodPlayerActivity : Activity() {
         handler.removeCallbacks(hideInfo)
         info.visibility = View.GONE
         val heading = when (item.kind) {
-            WatchItem.EPISODE -> "Je kijkt naar"
-            WatchItem.CATCHUP -> "⟲ Je kijkt terug"
-            else -> "Je kijkt naar"
+            WatchItem.EPISODE -> "SERIE"
+            WatchItem.CATCHUP -> "TERUGKIJKEN"
+            else -> "FILM"
         }
         val next = nextEpisode()
         pause.show(

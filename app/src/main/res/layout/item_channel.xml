@@ -52,22 +52,22 @@
             android:visibility="gone" />
     </LinearLayout>
 
-    <TextView
+    <ImageView
         android:id="@+id/archive"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
         android:layout_marginStart="8dp"
-        android:text="⟲"
-        android:textColor="@color/muted"
-        android:textSize="18sp"
+        android:contentDescription="Terugkijken mogelijk"
+        android:src="@drawable/ic_history"
+        android:tint="@color/muted"
         android:visibility="gone" />
 
-    <TextView
+    <ImageView
         android:id="@+id/star"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
         android:layout_marginStart="8dp"
-        android:text="★"
-        android:textColor="@color/star"
-        android:textSize="18sp" />
+        android:contentDescription="Favoriet"
+        android:src="@drawable/ic_star"
+        android:tint="@color/star" />
 </LinearLayout>

@@ -67,7 +67,7 @@ class PauseOverlay(
         left.visibility = seekVis
         restart.visibility = if (canRestart) View.VISIBLE else View.GONE
         if (nextLabel != null) {
-            next.text = "⏭  $nextLabel"
+            next.text = nextLabel
             next.visibility = View.VISIBLE
         } else {
             next.visibility = View.GONE

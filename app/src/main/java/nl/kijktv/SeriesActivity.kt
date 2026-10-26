@@ -49,7 +49,7 @@ class SeriesActivity : Activity() {
 
         findViewById<TextView>(R.id.name).text = s.name
         findViewById<TextView>(R.id.meta).text =
-            listOf(s.category, if (s.rating.isNotEmpty() && s.rating != "0") "★ ${s.rating}" else "")
+            listOf(s.category, if (s.rating.isNotEmpty() && s.rating != "0") "Score ${s.rating}" else "")
                 .filter { it.isNotEmpty() }.joinToString("  ·  ")
         findViewById<TextView>(R.id.plot).text = s.plot
         s.cover?.let { findViewById<ImageView>(R.id.cover).load(it) }
@@ -132,8 +132,8 @@ class SeriesActivity : Activity() {
         if (e == null) { continueBtn.visibility = View.GONE; return }
         val w = History.get(this, "ep:${e.id}")
         continueBtn.text = if (w != null && w.resumable)
-            "▶  Verder kijken: ${Vod.episodeLabel(e)} vanaf ${History.clock(w.positionMs)}"
-        else "▶  Kijk verder: ${Vod.episodeLabel(e)}  ${e.title}"
+            "Verder kijken: ${Vod.episodeLabel(e)} vanaf ${History.clock(w.positionMs)}"
+        else "Kijk verder: ${Vod.episodeLabel(e)}  ${e.title}"
         continueBtn.visibility = View.VISIBLE
         continueBtn.setOnClickListener { play(e) }
     }

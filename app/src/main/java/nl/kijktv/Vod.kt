@@ -9,7 +9,9 @@ class Movie(
     val poster: String?,
     val category: String,
     val ext: String,
-    val rating: String
+    val rating: String,
+    /** Wanneer de aanbieder hem toevoegde (seconden), voor "Nieuwe films". */
+    val added: Long = 0
 )
 
 class Series(
@@ -18,7 +20,8 @@ class Series(
     val cover: String?,
     val category: String,
     val plot: String,
-    val rating: String
+    val rating: String,
+    val added: Long = 0
 )
 
 class Episode(
@@ -84,7 +87,8 @@ object Vod {
                 Movie(
                     id, o.s("name").ifEmpty { "Film $id" },
                     o.s("stream_icon").takeIf { it.startsWith("http") }, cat,
-                    o.s("container_extension").ifEmpty { "mp4" }, o.s("rating")
+                    o.s("container_extension").ifEmpty { "mp4" }, o.s("rating"),
+                    o.s("added").toLongOrNull() ?: 0
                 )
             )
         }
@@ -110,7 +114,8 @@ object Vod {
             byCat.getOrPut(cat) { ArrayList() }.add(
                 Series(
                     id, o.s("name").ifEmpty { "Serie $id" },
-                    o.s("cover").takeIf { it.startsWith("http") }, cat, o.s("plot"), o.s("rating")
+                    o.s("cover").takeIf { it.startsWith("http") }, cat, o.s("plot"), o.s("rating"),
+                    o.s("last_modified").toLongOrNull() ?: 0
                 )
             )
         }

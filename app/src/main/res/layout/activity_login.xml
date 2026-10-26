@@ -129,7 +129,11 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="📱  Makkelijker: via je telefoon"
+            android:drawableStart="@drawable/ic_phone"
+            android:drawablePadding="10dp"
+            android:drawableTint="@color/accent"
+            android:gravity="center_vertical"
+            android:text="Inloggen met je telefoon"
             android:textColor="@color/text"
             android:textSize="20sp"
             android:textStyle="bold" />
