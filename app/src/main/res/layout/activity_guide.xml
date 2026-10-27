@@ -100,6 +100,17 @@
                 android:textColor="@color/muted"
                 android:textSize="16sp"
                 android:visibility="gone" />
+
+            <Button
+                android:id="@+id/pickTime"
+                style="@style/PauseButton"
+                android:layout_gravity="bottom|center_horizontal"
+                android:layout_marginBottom="24dp"
+                android:drawableStart="@drawable/ic_history"
+                android:drawablePadding="8dp"
+                android:drawableTint="@color/round_btn_text"
+                android:text="Terugkijken: kies dag en tijd"
+                android:visibility="gone" />
         </FrameLayout>
     </LinearLayout>
 </LinearLayout>

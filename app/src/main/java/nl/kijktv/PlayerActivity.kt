@@ -183,9 +183,16 @@ class PlayerActivity : Activity() {
             onSubtitles = { player?.let { TrackMenu.showSubtitles(this, it, playerView, false) } },
             onAudio = { player?.let { TrackMenu.showAudio(this, it, false) } },
             onArchive = {
-                pause.hide()
                 Repo.playList = list
-                startActivity(GuideActivity.open(this, index, list[index].name, focusProgrammes = true))
+                val ch = list[index]
+                val t = System.currentTimeMillis()
+                if (Epg.programmes(ch).any { it.stop <= t && Xtream.canCatchup(ch, it, t) }) {
+                    pause.hide()
+                    startActivity(GuideActivity.open(this, index, ch.name, focusProgrammes = true))
+                } else {
+                    // Geen programma-informatie: zelf dag en tijd kiezen.
+                    CatchupPicker.show(this, list, index)
+                }
             }
         )
         TrackMenu.applyStyle(playerView, prefs.subtitleSize)

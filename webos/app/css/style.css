@@ -181,7 +181,7 @@ html, body {
 
 /* ---------- Keuzevenster en melding ---------- */
 .layer { position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; z-index: 50; }
-.dialog { width: 920px; background: var(--panel); border-radius: 28px; padding: 48px 52px; box-shadow: 0 30px 80px rgba(0,0,0,.6); }
+.dialog { width: 920px; max-height: 960px; overflow-y: auto; background: var(--panel); border-radius: 28px; padding: 48px 52px; box-shadow: 0 30px 80px rgba(0,0,0,.6); }
 .dialog-title { font-size: 38px; font-weight: 800; margin-bottom: 10px; }
 .dialog-msg { font-size: 24px; color: var(--muted); line-height: 1.45; margin-bottom: 22px; white-space: pre-line; }
 .dialog-opt { height: 72px; border-radius: 14px; display: flex; align-items: center; padding: 0 28px; font-size: 27px; margin-top: 10px; background: rgba(255,255,255,.06); }

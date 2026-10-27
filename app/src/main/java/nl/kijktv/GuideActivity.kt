@@ -37,6 +37,7 @@ class GuideActivity : Activity() {
     private lateinit var channelsView: RecyclerView
     private lateinit var programmesView: RecyclerView
     private lateinit var empty: TextView
+    private lateinit var pickTime: View
     private lateinit var clock: TextView
     private lateinit var channelAdapter: ChannelAdapter
     private lateinit var programmeAdapter: ProgrammeAdapter
@@ -73,6 +74,8 @@ class GuideActivity : Activity() {
         channelsView = findViewById(R.id.channels)
         programmesView = findViewById(R.id.programmes)
         empty = findViewById(R.id.empty)
+        pickTime = findViewById(R.id.pickTime)
+        pickTime.setOnClickListener { CatchupPicker.show(this, list, selected) }
         clock = findViewById(R.id.clock)
         findViewById<TextView>(R.id.subtitle).text =
             intent.getStringExtra(EXTRA_TITLE)?.let { "·  $it" } ?: ""
@@ -147,6 +150,10 @@ class GuideActivity : Activity() {
         Epg.fetchArchive(prefs.account, c) { runOnUiThread { if (!isFinishing) refreshIfSelected(c) } }
         val progs = Epg.programmes(c)
         programmeAdapter.submit(c, progs)
+        // Geen gemiste programma's in de gids? Dan zelf een dag en tijd laten kiezen.
+        val t = System.currentTimeMillis()
+        val hasPast = progs.any { it.stop <= t && Xtream.canCatchup(c, it, t) }
+        pickTime.visibility = if (!hasPast && c.streamId != null && prefs.account?.isXtream == true) View.VISIBLE else View.GONE
         if (progs.isEmpty()) {
             empty.text = when {
                 Epg.loading -> "Programmagids wordt geladen…"
@@ -157,6 +164,7 @@ class GuideActivity : Activity() {
                 else -> "Geen programmagegevens voor deze zender.\n\nOK = live kijken"
             }
             empty.visibility = View.VISIBLE
+            if (focusProgrammesPending && pickTime.visibility == View.VISIBLE) pickTime.post { pickTime.requestFocus() }
         } else {
             empty.visibility = View.GONE
             if (focusProgrammesPending) {
@@ -220,6 +228,13 @@ class GuideActivity : Activity() {
             return true
         }
         // Naar rechts vanuit de zenders: naar het programma dat nu loopt.
+        if (event.action == KeyEvent.ACTION_DOWN && event.keyCode == KeyEvent.KEYCODE_DPAD_RIGHT &&
+            channelsView.hasFocus() && programmeAdapter.itemCount == 0 && pickTime.visibility == View.VISIBLE
+        ) {
+            pendingSelect?.let { handler.removeCallbacks(it); it.run() }
+            pickTime.requestFocus()
+            return true
+        }
         if (event.action == KeyEvent.ACTION_DOWN && event.keyCode == KeyEvent.KEYCODE_DPAD_RIGHT &&
             channelsView.hasFocus() && programmeAdapter.itemCount > 0
         ) {

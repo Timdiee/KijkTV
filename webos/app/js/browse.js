@@ -201,7 +201,15 @@
             var p = cellSel && cellSel.p;
             var n = Date.now();
             if (!ch) return;
-            if (!p || (p.start <= n && p.stop > n && !KTV.catchup.can(ch, p, n))) {
+            if (!p) {
+                // Geen programma-informatie: live kijken of zelf dag en tijd kiezen om terug te kijken.
+                KTV.dialog.choose(ch.name, '', ['Live kijken', 'Terugkijken: kies dag en tijd'], function (i) {
+                    if (i === 0) KTV.screens.push(KTV.Player.live(list, row));
+                    if (i === 1) KTV.catchupPicker(ch);
+                });
+                return;
+            }
+            if (p.start <= n && p.stop > n && !KTV.catchup.can(ch, p, n)) {
                 KTV.screens.push(KTV.Player.live(list, row));
                 return;
             }
@@ -225,6 +233,39 @@
         s.resume = function () { render(); };
         s.destroy = function () { clearInterval(timer); KTV.epg.offUpdate(onEpg); };
         return s;
+    };
+
+    /* ======================= Terugkijken op dag en tijd ======================= */
+
+    KTV.catchupPicker = function (ch) {
+        var a = KTV.account.get();
+        if (!a || a.type !== 'xtream' || !ch.sid) { KTV.toast('Terugkijken kan alleen met inloggen via server, gebruikersnaam en wachtwoord'); return; }
+        var days = ch.archive > 0 ? Math.min(ch.archive, 14) : 7;
+        var starts = [];
+        for (var d = 0; d < days; d++) {
+            var t = new Date(); t.setDate(t.getDate() - d); t.setHours(0, 0, 0, 0);
+            starts.push(t.getTime());
+        }
+        KTV.dialog.choose('Terugkijken: ' + ch.name, 'Welke dag?', starts.map(function (s) { return KTV.day(s); }), function (i) {
+            if (i < 0) return;
+            var day = starts[i], now = Date.now(), times = [];
+            for (var t = day; t < day + 86400000 && t < now - 300000; t += 15 * 60000) times.push(t);
+            if (!times.length) { KTV.toast('Kies een eerder moment'); return; }
+            var target = day + 86400000 > now ? now - 7200000 : day + 14 * 3600000;
+            var sel = 0;
+            times.forEach(function (x, j) { if (x <= target) sel = j; });
+            KTV.dialog.choose(KTV.day(day) + ': vanaf hoe laat?', '', times.map(function (x) { return KTV.time(x); }), function (j) {
+                if (j < 0) return;
+                var start = times[j];
+                var stop = Math.min(start + 4 * 3600000, Date.now() - 60000);
+                var p = { start: start, stop: stop, title: ch.name, desc: '' };
+                KTV.playItem({
+                    key: 'cu:' + ch.sid + ':' + start, kind: 'catchup', title: ch.name,
+                    sub: ch.name + '  ·  ' + KTV.day(start) + ' vanaf ' + KTV.time(start),
+                    img: ch.logo, url: KTV.catchup.url(ch, p), dur: stop - start
+                });
+            }, sel);
+        });
     };
 
     /* ======================= Films / Series ======================= */
