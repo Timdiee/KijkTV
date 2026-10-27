@@ -106,8 +106,9 @@ object Xtream {
 
     /** Kan dit programma teruggekeken worden? (al begonnen en binnen de bewaartermijn) */
     fun canCatchup(c: Channel, p: Programme, now: Long = System.currentTimeMillis()): Boolean {
-        if (c.archiveDays <= 0 || c.streamId == null) return false
-        if (p.start > now) return false
+        if (c.streamId == null || p.start > now) return false
+        if (p.archived) return true
+        if (c.archiveDays <= 0) return false
         return now - p.start < c.archiveDays * 24L * 3600 * 1000
     }
 
@@ -136,6 +137,28 @@ object Xtream {
         }
         out.sortBy { it.start }
         return out
+    }
+
+    /** Volledige gids van één zender, inclusief de afgelopen dagen (met "terug te kijken"-vlag). */
+    fun archiveEpg(acc: Account, streamId: Int): List<Programme> {
+        val text = Http.getText(apiUrl(acc, "get_simple_data_table&stream_id=$streamId"))
+        val obj = try { JSONObject(text) } catch (_: Exception) { return emptyList() }
+        val arr = obj.optJSONArray("epg_listings") ?: return emptyList()
+        val now = System.currentTimeMillis()
+        val from = now - 8L * 24 * 3600 * 1000
+        val to = now + 3L * 24 * 3600 * 1000
+        val out = ArrayList<Programme>()
+        for (i in 0 until arr.length()) {
+            val o = arr.optJSONObject(i) ?: continue
+            val start = (o.str("start_timestamp").toLongOrNull() ?: continue) * 1000
+            val stop = (o.str("stop_timestamp").toLongOrNull() ?: continue) * 1000
+            if (stop < from || start > to || stop <= start) continue
+            val archived = o.optInt("has_archive", 0) == 1 || o.str("has_archive") == "1"
+            out.add(Programme(start, stop, b64(o.str("title")), b64(o.str("description")).take(400), archived))
+        }
+        out.sortBy { it.start }
+        // Dubbele items (sommige servers sturen ze twee keer) eruit halen.
+        return out.distinctBy { it.start }
     }
 
     private fun b64(s: String): String = try {

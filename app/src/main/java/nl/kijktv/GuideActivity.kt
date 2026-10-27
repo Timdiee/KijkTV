@@ -19,12 +19,14 @@ class GuideActivity : Activity() {
     companion object {
         private const val EXTRA_INDEX = "index"
         private const val EXTRA_TITLE = "title"
+        private const val EXTRA_FOCUS_PROG = "focusProg"
 
         /** Opent de gids voor de lijst in [Repo.playList], beginnend bij [index]. */
-        fun open(ctx: Context, index: Int, title: String? = null) =
+        fun open(ctx: Context, index: Int, title: String? = null, focusProgrammes: Boolean = false) =
             Intent(ctx, GuideActivity::class.java)
                 .putExtra(EXTRA_INDEX, index)
                 .putExtra(EXTRA_TITLE, title)
+                .putExtra(EXTRA_FOCUS_PROG, focusProgrammes)
     }
 
     private lateinit var prefs: Prefs
@@ -58,6 +60,8 @@ class GuideActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_guide)
+        setupBackButton()
+        focusProgrammesPending = intent.getBooleanExtra(EXTRA_FOCUS_PROG, false)
         prefs = Prefs(this)
         list = Repo.playList
         if (list.isEmpty()) { finish(); return }
@@ -118,9 +122,21 @@ class GuideActivity : Activity() {
         handler.removeCallbacks(ticker)
     }
 
+    private var focusProgrammesPending = false
+
+    /** Zet de focus op het programma dat nu loopt (zodat je met omhoog meteen terug in de tijd gaat). */
+    private fun focusCurrentProgramme() {
+        if (programmeAdapter.itemCount == 0) return
+        val cur = programmeAdapter.currentIndex()
+        val lm = programmesView.layoutManager as LinearLayoutManager
+        lm.scrollToPositionWithOffset(cur, 160)
+        programmesView.post { lm.findViewByPosition(cur)?.findViewById<View>(R.id.row)?.requestFocus() }
+    }
+
     private fun showProgrammes(i: Int, keepFocus: Boolean) {
         selected = i
         val c = list[i]
+        Epg.fetchArchive(prefs.account, c) { runOnUiThread { if (!isFinishing) refreshIfSelected(c) } }
         val progs = Epg.programmes(c)
         programmeAdapter.submit(c, progs)
         if (progs.isEmpty()) {
@@ -135,8 +151,13 @@ class GuideActivity : Activity() {
             empty.visibility = View.VISIBLE
         } else {
             empty.visibility = View.GONE
-            val cur = programmeAdapter.currentIndex()
-            (programmesView.layoutManager as LinearLayoutManager).scrollToPositionWithOffset(cur, 40)
+            if (focusProgrammesPending) {
+                focusProgrammesPending = false
+                focusCurrentProgramme()
+            } else if (!(keepFocus && programmesView.hasFocus())) {
+                val cur = programmeAdapter.currentIndex()
+                (programmesView.layoutManager as LinearLayoutManager).scrollToPositionWithOffset(cur, 160)
+            }
         }
     }
 

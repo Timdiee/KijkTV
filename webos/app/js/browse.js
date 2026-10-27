@@ -44,7 +44,7 @@
         var maxArchive = 0;
         list.forEach(function (c) { if (c.archive > maxArchive) maxArchive = c.archive; });
         maxArchive = Math.min(7, maxArchive);
-        var minStart = floor(now0 - (maxArchive ? maxArchive * 86400000 : 2 * 3600000));
+        var minStart = floor(now0 - Math.max(maxArchive, 3) * 86400000);
         var maxEnd = now0 + 3 * 86400000;
         var ws = floor(now0) - STEP;
         var row = Math.max(0, Math.min(startIndex || 0, list.length - 1));

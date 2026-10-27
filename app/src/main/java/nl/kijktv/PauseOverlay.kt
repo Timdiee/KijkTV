@@ -17,7 +17,8 @@ class PauseOverlay(
     private val onRestart: () -> Unit,
     private val onNext: () -> Unit,
     private val onSubtitles: () -> Unit = {},
-    private val onAudio: () -> Unit = {}
+    private val onAudio: () -> Unit = {},
+    private val onArchive: () -> Unit = {}
 ) {
     private val root: View = activity.findViewById(R.id.pauseOverlay)
     private val label: TextView = activity.findViewById(R.id.pauseLabel)
@@ -34,6 +35,7 @@ class PauseOverlay(
     private val next: Button = activity.findViewById(R.id.pauseNext)
     private val subs: Button = activity.findViewById(R.id.pauseSubs)
     private val audio: Button = activity.findViewById(R.id.pauseAudio)
+    private val archive: Button = activity.findViewById(R.id.pauseArchive)
 
     val isShowing get() = root.visibility == View.VISIBLE
 
@@ -45,6 +47,7 @@ class PauseOverlay(
         next.setOnClickListener { onNext() }
         subs.setOnClickListener { onSubtitles() }
         audio.setOnClickListener { onAudio() }
+        archive.setOnClickListener { onArchive() }
         activity.findViewById<View>(R.id.pauseExit).setOnClickListener { activity.onBackPressed() }
     }
 
@@ -60,8 +63,10 @@ class PauseOverlay(
         canRestart: Boolean,
         nextLabel: String?,
         showSubtitles: Boolean = false,
-        showAudio: Boolean = false
+        showAudio: Boolean = false,
+        showArchive: Boolean = false
     ) {
+        archive.visibility = if (showArchive) View.VISIBLE else View.GONE
         subs.visibility = if (showSubtitles) View.VISIBLE else View.GONE
         audio.visibility = if (showAudio) View.VISIBLE else View.GONE
         label.text = heading

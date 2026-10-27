@@ -9,7 +9,14 @@ import java.io.InputStream
 import java.util.concurrent.ConcurrentHashMap
 import java.util.zip.GZIPInputStream
 
-class Programme(val start: Long, val stop: Long, val title: String, val desc: String)
+class Programme(
+    val start: Long,
+    val stop: Long,
+    val title: String,
+    val desc: String,
+    /** De aanbieder meldt dat dit programma terug te kijken is. */
+    val archived: Boolean = false
+)
 
 /** De programmagids (EPG). Leest XMLTV en bewaart een compacte kopie op het apparaat. */
 object Epg {
@@ -18,6 +25,10 @@ object Epg {
     @Volatile private var loadedUrl: String? = null
     private val shortCache = ConcurrentHashMap<Int, List<Programme>>()
     private val shortBusy = ConcurrentHashMap<Int, Boolean>()
+    /** Volledige lijst per zender incl. gemiste programma's (terugkijk-archief van de aanbieder). */
+    private val archiveCache = ConcurrentHashMap<Int, List<Programme>>()
+    private val archiveAt = ConcurrentHashMap<Int, Long>()
+    private val pool = java.util.concurrent.Executors.newFixedThreadPool(3)
 
     @Volatile var version = 0
         private set
@@ -40,16 +51,42 @@ object Epg {
 
     fun clear() {
         data = emptyMap(); nameIndex = emptyMap(); loadedUrl = null
-        shortCache.clear(); shortBusy.clear()
+        shortCache.clear(); shortBusy.clear(); archiveCache.clear(); archiveAt.clear()
         version++
     }
 
     fun programmes(c: Channel): List<Programme> {
+        val base = basicProgrammes(c)
+        val arch = c.streamId?.let { archiveCache[it] }
+        if (arch.isNullOrEmpty()) return base
+        // Archief (met gemiste programma's) voorop, aangevuld met wat de gewone gids nog verder vooruit weet.
+        val lastStop = arch.last().stop
+        return if (base.isEmpty()) arch else arch + base.filter { it.start >= lastStop }
+    }
+
+    private fun basicProgrammes(c: Channel): List<Programme> {
         val id = c.epgId?.lowercase()
         if (id != null) data[id]?.let { return it }
         nameIndex[norm(c.name)]?.let { key -> data[key]?.let { return it } }
         c.streamId?.let { sid -> shortCache[sid]?.let { return it } }
         return emptyList()
+    }
+
+    /** Haalt de programma's van de afgelopen dagen op (voor terugkijken). Hooguit eens per 30 minuten per zender. */
+    fun fetchArchive(acc: Account?, c: Channel, done: () -> Unit) {
+        val sid = c.streamId ?: return
+        if (acc == null || !acc.isXtream) return
+        val last = archiveAt[sid] ?: 0L
+        if (System.currentTimeMillis() - last < 30 * 60_000L) return
+        archiveAt[sid] = System.currentTimeMillis()
+        pool.execute {
+            val list = try { Xtream.archiveEpg(acc, sid) } catch (_: Exception) { emptyList() }
+            if (list.isNotEmpty()) {
+                archiveCache[sid] = list
+                version++
+            }
+            done()
+        }
     }
 
     fun now(c: Channel, t: Long = System.currentTimeMillis()): Programme? =

@@ -464,7 +464,24 @@ class MainActivity : Activity() {
         releasePreview()
     }
 
+    /** Programma's van vandaag en de afgelopen dagen van één zender (om terug te kijken). */
+    private fun openChannelProgrammes(index: Int) {
+        if (current.isEmpty()) return
+        releasePreview()
+        Repo.playList = current
+        val title = if (search.text.isNotEmpty()) "Zoekresultaten" else groupLabel(currentGroup)
+        startActivity(GuideActivity.open(this, index, title, focusProgrammes = true))
+    }
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.action == KeyEvent.ACTION_DOWN &&
+            event.keyCode == KeyEvent.KEYCODE_DPAD_RIGHT &&
+            channelsView.hasFocus()
+        ) {
+            val f = channelsView.focusedChild
+            val pos = if (f != null) channelsView.getChildAdapterPosition(f) else -1
+            if (pos >= 0) { openChannelProgrammes(pos); return true }
+        }
         // Naar links vanuit de zenderlijst: altijd terug naar de actieve groep,
         // zodat je niet per ongeluk van groep wisselt.
         if (event.action == KeyEvent.ACTION_DOWN &&

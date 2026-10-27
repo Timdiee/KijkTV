@@ -176,7 +176,12 @@ class PlayerActivity : Activity() {
             },
             onNext = { },
             onSubtitles = { player?.let { TrackMenu.showSubtitles(this, it, playerView, false) } },
-            onAudio = { player?.let { TrackMenu.showAudio(this, it, false) } }
+            onAudio = { player?.let { TrackMenu.showAudio(this, it, false) } },
+            onArchive = {
+                pause.hide()
+                Repo.playList = list
+                startActivity(GuideActivity.open(this, index, list[index].name, focusProgrammes = true))
+            }
         )
         TrackMenu.applyStyle(playerView, prefs.subtitleSize)
 
@@ -441,7 +446,8 @@ class PlayerActivity : Activity() {
             canRestart = now != null && Xtream.canCatchup(ch, now) && prefs.account?.isXtream == true,
             nextLabel = null,
             showSubtitles = TrackMenu.hasSubtitles(p),
-            showAudio = TrackMenu.hasAudioChoice(p)
+            showAudio = TrackMenu.hasAudioChoice(p),
+            showArchive = prefs.account?.isXtream == true && ch.streamId != null
         )
         val d = p.duration
         pause.update(p.currentPosition, if (d != C.TIME_UNSET && d > 0) d else 0)

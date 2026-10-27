@@ -265,6 +265,7 @@
                 <Button android:id="@+id/pauseFwd" style="@style/PauseButton" android:drawableStart="@drawable/ic_forward" android:drawablePadding="8dp" android:drawableTint="@color/round_btn_text" android:text="10 sec" />
                 <Button android:id="@+id/pauseRestart" style="@style/PauseButton" android:drawableStart="@drawable/ic_replay" android:drawablePadding="8dp" android:drawableTint="@color/round_btn_text" android:text="Vanaf begin" />
                 <Button android:id="@+id/pauseNext" style="@style/PauseButton" android:drawableStart="@drawable/ic_skip_next" android:drawablePadding="8dp" android:drawableTint="@color/round_btn_text" android:text="Volgende aflevering" android:visibility="gone" />
+                <Button android:id="@+id/pauseArchive" style="@style/PauseButton" android:drawableStart="@drawable/ic_history" android:drawablePadding="8dp" android:drawableTint="@color/round_btn_text" android:text="Terugkijken" android:visibility="gone" />
                 <Button android:id="@+id/pauseSubs" style="@style/PauseButton" android:drawableStart="@drawable/ic_subtitles" android:drawablePadding="8dp" android:drawableTint="@color/round_btn_text" android:text="Ondertiteling" android:visibility="gone" />
                 <Button android:id="@+id/pauseAudio" style="@style/PauseButton" android:drawableStart="@drawable/ic_audio" android:drawablePadding="8dp" android:drawableTint="@color/round_btn_text" android:text="Audio" android:visibility="gone" />
             </LinearLayout>

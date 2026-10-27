@@ -101,7 +101,7 @@ class GuideGridActivity : Activity() {
 
         val now = System.currentTimeMillis()
         val maxArchive = list.maxOfOrNull { it.archiveDays }?.coerceIn(0, 7) ?: 0
-        minStart = floorStep(now - if (maxArchive > 0) maxArchive * 24L * 3600_000 else 2 * 3600_000L)
+        minStart = floorStep(now - maxOf(maxArchive, 3) * 24L * 3600_000)
         maxEnd = now + 3L * 24 * 3600_000
         windowStart = floorStep(now) - STEP
         focusRow = intent.getIntExtra(EXTRA_INDEX, 0).coerceIn(0, list.size - 1)
@@ -200,6 +200,7 @@ class GuideGridActivity : Activity() {
             if (Epg.programmes(ch).isEmpty()) {
                 Epg.fetchShort(prefs.account, ch) { }
             }
+            Epg.fetchArchive(prefs.account, ch) { }
         }
     }
 

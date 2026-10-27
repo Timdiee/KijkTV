@@ -238,7 +238,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:lineSpacingExtra="2dp"
-                android:text="Houd OK ingedrukt om een zender aan je favorieten toe te voegen"
+                android:text="Pijltje rechts: programma\'s en terugkijken  ·  OK lang ingedrukt: favoriet"
                 android:textColor="@color/muted"
                 android:textSize="11sp" />
         </LinearLayout>

@@ -392,7 +392,7 @@
         var info = el('div', 'col info');
         body.appendChild(colG); body.appendChild(colC); body.appendChild(info);
         r.appendChild(body);
-        r.appendChild(el('div', 'hint', 'OK: kijken   ·   OK lang ingedrukt: favoriet'));
+        r.appendChild(el('div', 'hint', 'OK: kijken   ·   Pijltje rechts: programma\'s en terugkijken   ·   OK lang ingedrukt: favoriet'));
 
         var current = [];
         var groupKey = KTV.store.get('lastGroup', '__all');
@@ -421,8 +421,13 @@
                 KTV.store.set('lastChannel', ch.url);
                 KTV.screens.push(KTV.Player.live(current, i));
             },
-            onKey: function (e) {
+            onKey: function (e, ch, i) {
                 if (e.keyCode === K.LEFT) { KTV.focus.set(groups.root); return true; }
+                // Pijltje rechts: programma's van deze zender, ook de gemiste (om terug te kijken).
+                if (e.keyCode === K.RIGHT && ch) {
+                    KTV.screens.push(KTV.Guide(current, i, ch.name));
+                    return true;
+                }
                 return false;
             }
         });

@@ -239,7 +239,8 @@
             arr.forEach(function (o) {
                 var s = parseInt(o.start_timestamp, 10) * 1000, e = parseInt(o.stop_timestamp, 10) * 1000;
                 if (!s || !e || e < now - 8 * 86400000 || s > now + 3 * 86400000) return;
-                list.push({ start: s, stop: e, title: KTV.b64(o.title), desc: KTV.b64(o.description).slice(0, 500) });
+                list.push({ start: s, stop: e, title: KTV.b64(o.title), desc: KTV.b64(o.description).slice(0, 500),
+                    archived: String(o.has_archive) === '1' });
             });
             list.sort(function (x, y) { return x.start - y.start; });
             epgCache[ch.sid] = { at: Date.now(), list: list };
@@ -263,8 +264,10 @@
         can: function (ch, p, now) {
             now = now || Date.now();
             var a = KTV.account.get();
-            if (!a || a.type !== 'xtream' || !ch || !ch.archive || !ch.sid || !p) return false;
+            if (!a || a.type !== 'xtream' || !ch || !ch.sid || !p) return false;
             if (p.start > now) return false;
+            if (p.archived) return true;
+            if (!ch.archive) return false;
             return now - p.start < ch.archive * 86400000;
         },
         url: function (ch, p) {
