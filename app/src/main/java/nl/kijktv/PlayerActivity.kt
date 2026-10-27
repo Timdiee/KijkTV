@@ -27,6 +27,10 @@ import coil.load
  */
 class PlayerActivity : Activity() {
 
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(Ui.wrap(newBase))
+    }
+
     companion object {
         private const val EXTRA_INDEX = "index"
         private const val EXTRA_CU_START = "cuStart"
@@ -81,6 +85,7 @@ class PlayerActivity : Activity() {
     private var catchup: Programme? = null
     private var lastLeftPress = 0L
     private lateinit var pause: PauseOverlay
+    private lateinit var touch: android.view.GestureDetector
     private var longPressed = false
 
     private val hideInfo = Runnable { info.visibility = View.GONE }
@@ -184,6 +189,17 @@ class PlayerActivity : Activity() {
             }
         )
         TrackMenu.applyStyle(playerView, prefs.subtitleSize)
+        touch = Ui.gestures(
+            this,
+            onTap = { if (errorView.visibility == View.VISIBLE) playCurrent() else togglePause() },
+            onSwipe = { dx, dy ->
+                when {
+                    dy != 0 -> zap(if (dy < 0) 1 else -1)          // omhoog vegen = volgende zender
+                    liveSeekable() -> seekBy(if (dx > 0) SEEK_MS else -SEEK_MS)
+                    else -> showInfo()
+                }
+            }
+        )
 
         list = Repo.playList
         if (list.isEmpty()) {
@@ -417,6 +433,13 @@ class PlayerActivity : Activity() {
             }
         }
         return super.onKeyDown(keyCode, event)
+    }
+
+    override fun dispatchTouchEvent(ev: android.view.MotionEvent): Boolean {
+        // Pauzescherm open: gewoon de knoppen laten werken. Anders: tikken/vegen.
+        if (pause.isShowing) return super.dispatchTouchEvent(ev)
+        touch.onTouchEvent(ev)
+        return true
     }
 
     private fun togglePause() {

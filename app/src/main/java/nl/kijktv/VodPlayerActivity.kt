@@ -26,6 +26,10 @@ import coil.load
  */
 class VodPlayerActivity : Activity() {
 
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(Ui.wrap(newBase))
+    }
+
     companion object {
         fun intent(ctx: Context, w: WatchItem, startPos: Long): Intent =
             Intent(ctx, VodPlayerActivity::class.java)
@@ -63,6 +67,7 @@ class VodPlayerActivity : Activity() {
     private var resumeAt = 0L
     private var retried = false
     private lateinit var pause: PauseOverlay
+    private lateinit var touch: android.view.GestureDetector
     @Volatile private var plotFetched = false
 
     private val hideInfo = Runnable { info.visibility = View.GONE }
@@ -126,6 +131,16 @@ class VodPlayerActivity : Activity() {
             onAudio = { player?.let { TrackMenu.showAudio(this, it, true) } }
         )
         TrackMenu.applyStyle(playerView, Prefs(this).subtitleSize)
+        touch = Ui.gestures(
+            this,
+            onTap = {
+                if (errorView.visibility == View.VISIBLE) {
+                    resumeAt = player?.currentPosition ?: resumeAt
+                    startItem()
+                } else togglePause()
+            },
+            onSwipe = { dx, _ -> if (dx != 0) seekBy(if (dx > 0) 30_000L else -30_000L) else showInfo() }
+        )
 
         val i = intent
         val url = i.getStringExtra("url")
@@ -338,6 +353,12 @@ class VodPlayerActivity : Activity() {
             }
         }
         return super.onKeyDown(keyCode, event)
+    }
+
+    override fun dispatchTouchEvent(ev: android.view.MotionEvent): Boolean {
+        if (pause.isShowing) return super.dispatchTouchEvent(ev)
+        touch.onTouchEvent(ev)
+        return true
     }
 
     private fun togglePause() {

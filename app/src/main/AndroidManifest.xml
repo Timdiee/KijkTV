@@ -24,7 +24,7 @@
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize"
             android:exported="true"
             android:launchMode="singleTask"
-            android:screenOrientation="landscape"
+            android:screenOrientation="sensorLandscape"
             android:windowSoftInputMode="adjustNothing|stateHidden">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -37,60 +37,60 @@
             android:name=".MainActivity"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize"
             android:exported="false"
-            android:screenOrientation="landscape"
+            android:screenOrientation="sensorLandscape"
             android:windowSoftInputMode="adjustNothing|stateHidden" />
 
         <activity
             android:name=".GuideGridActivity"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize"
             android:exported="false"
-            android:screenOrientation="landscape" />
+            android:screenOrientation="sensorLandscape" />
 
         <activity
             android:name=".LoginActivity"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize"
             android:exported="false"
-            android:screenOrientation="landscape"
+            android:screenOrientation="sensorLandscape"
             android:windowSoftInputMode="adjustNothing|stateHidden" />
 
         <activity
             android:name=".GuideActivity"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize"
             android:exported="false"
-            android:screenOrientation="landscape"
+            android:screenOrientation="sensorLandscape"
             android:windowSoftInputMode="adjustNothing|stateHidden" />
 
         <activity
             android:name=".MediaActivity"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize"
             android:exported="false"
-            android:screenOrientation="landscape"
+            android:screenOrientation="sensorLandscape"
             android:windowSoftInputMode="adjustNothing|stateHidden" />
 
         <activity
             android:name=".SeriesActivity"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize"
             android:exported="false"
-            android:screenOrientation="landscape"
+            android:screenOrientation="sensorLandscape"
             android:windowSoftInputMode="adjustNothing|stateHidden" />
 
         <activity
             android:name=".HistoryActivity"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize"
             android:exported="false"
-            android:screenOrientation="landscape"
+            android:screenOrientation="sensorLandscape"
             android:windowSoftInputMode="adjustNothing|stateHidden" />
 
         <activity
             android:name=".VodPlayerActivity"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize"
             android:exported="false"
-            android:screenOrientation="landscape" />
+            android:screenOrientation="sensorLandscape" />
 
         <activity
             android:name=".PlayerActivity"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize"
             android:exported="false"
-            android:screenOrientation="landscape" />
+            android:screenOrientation="sensorLandscape" />
     </application>
 </manifest>

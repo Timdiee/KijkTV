@@ -18,6 +18,10 @@ import coil.load
 /** Eén serie: seizoenen links, afleveringen rechts, met "verder kijken". */
 class SeriesActivity : Activity() {
 
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(Ui.wrap(newBase))
+    }
+
     companion object {
         fun intent(ctx: Context, seriesId: Int) =
             Intent(ctx, SeriesActivity::class.java).putExtra("id", seriesId)

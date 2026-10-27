@@ -26,6 +26,10 @@ import androidx.recyclerview.widget.RecyclerView
 /** Live TV: groepen links, zenders in het midden, voorbeeld + gids rechts, menubalk boven. */
 class MainActivity : Activity() {
 
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(Ui.wrap(newBase))
+    }
+
     companion object {
         const val KEY_FAV = "__kijktv_fav__"
         const val KEY_ALL = "__kijktv_all__"

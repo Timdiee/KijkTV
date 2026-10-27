@@ -12,6 +12,10 @@ import android.widget.TextView
 /** Inlogscherm: server + gebruikersnaam + wachtwoord, een M3U-link, of via de telefoon. */
 class LoginActivity : Activity() {
 
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(Ui.wrap(newBase))
+    }
+
     companion object {
         const val DEMO_URL = "https://iptv-org.github.io/iptv/countries/nl.m3u"
     }

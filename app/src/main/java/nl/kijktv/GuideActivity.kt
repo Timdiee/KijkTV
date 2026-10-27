@@ -16,6 +16,10 @@ import androidx.recyclerview.widget.RecyclerView
 /** Programmagids: zenders links, de dagplanning van de gekozen zender rechts. */
 class GuideActivity : Activity() {
 
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(Ui.wrap(newBase))
+    }
+
     companion object {
         private const val EXTRA_INDEX = "index"
         private const val EXTRA_TITLE = "title"
@@ -81,8 +85,12 @@ class GuideActivity : Activity() {
                 handler.postDelayed(r, 150)
             },
             onClick = { i, _ ->
-                Repo.playList = list
-                startActivity(PlayerActivity.live(this, i))
+                if (channelsView.isInTouchMode && i != selected) {
+                    showProgrammes(i, keepFocus = false)
+                } else {
+                    Repo.playList = list
+                    startActivity(PlayerActivity.live(this, i))
+                }
             },
             onLongClick = { _, c ->
                 val fav = prefs.toggleFavorite(c.url)

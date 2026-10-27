@@ -13,6 +13,10 @@ import androidx.recyclerview.widget.RecyclerView
 /** Kijkgeschiedenis: alles wat je keek, verder kijken, en alles wissen. */
 class HistoryActivity : Activity() {
 
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(Ui.wrap(newBase))
+    }
+
     private enum class Filter { ALL, RESUME, VOD, LIVE }
 
     private lateinit var listView: RecyclerView

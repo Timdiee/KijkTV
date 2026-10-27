@@ -26,6 +26,10 @@ import coil.load
  */
 class GuideGridActivity : Activity() {
 
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(Ui.wrap(newBase))
+    }
+
     companion object {
         private const val EXTRA_INDEX = "index"
         private const val EXTRA_TITLE = "title"
@@ -159,6 +163,18 @@ class GuideGridActivity : Activity() {
             nowLine.visibility = View.VISIBLE
             nowLine.translationX = (dp(170) + (now - windowStart) * pxPerMs).toFloat()
         }
+    }
+
+    private val timeSwipe by lazy {
+        Ui.gestures(this, onTap = {}, onSwipe = { dx, _ ->
+            if (dx != 0 && shiftWindow(if (dx < 0) 2 * STEP else -2 * STEP)) focusTime = windowStart + STEP
+        })
+    }
+
+    override fun dispatchTouchEvent(ev: android.view.MotionEvent): Boolean {
+        // Alleen meekijken: verticaal scrollen en tikken op programma's blijven gewoon werken.
+        timeSwipe.onTouchEvent(ev)
+        return super.dispatchTouchEvent(ev)
     }
 
     private fun shiftWindow(delta: Long): Boolean {

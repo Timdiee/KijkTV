@@ -20,6 +20,10 @@ import androidx.recyclerview.widget.RecyclerView
 /** Films of Series bladeren: categorieën links, posters rechts. */
 class MediaActivity : Activity() {
 
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(Ui.wrap(newBase))
+    }
+
     companion object {
         private const val KEY_RESUME = "__resume__"
         private const val KEY_ALL = "__all__"

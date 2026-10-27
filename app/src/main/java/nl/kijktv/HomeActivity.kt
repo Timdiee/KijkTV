@@ -96,6 +96,10 @@ class CardAdapter(
 /** Startscherm zoals bij Ziggo GO / Canal+: uitgelicht vak bovenaan en rijen eronder. */
 class HomeActivity : Activity() {
 
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(Ui.wrap(newBase))
+    }
+
     private lateinit var prefs: Prefs
     private lateinit var rows: LinearLayout
     private lateinit var rowsScroll: ScrollView
