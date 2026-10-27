@@ -52,6 +52,7 @@ class MediaActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_media)
+        setupBackButton()
         prefs = Prefs(this)
         isSeries = intent.getBooleanExtra("series", false)
 

@@ -174,8 +174,11 @@ class PlayerActivity : Activity() {
                 pause.hide()
                 if (now != null) startActivity(catchup(this, index, now))
             },
-            onNext = { }
+            onNext = { },
+            onSubtitles = { player?.let { TrackMenu.showSubtitles(this, it, playerView, false) } },
+            onAudio = { player?.let { TrackMenu.showAudio(this, it, false) } }
         )
+        TrackMenu.applyStyle(playerView, prefs.subtitleSize)
 
         list = Repo.playList
         if (list.isEmpty()) {
@@ -436,7 +439,9 @@ class PlayerActivity : Activity() {
             description = now?.desc.orEmpty(),
             seekable = liveSeekable(),
             canRestart = now != null && Xtream.canCatchup(ch, now) && prefs.account?.isXtream == true,
-            nextLabel = null
+            nextLabel = null,
+            showSubtitles = TrackMenu.hasSubtitles(p),
+            showAudio = TrackMenu.hasAudioChoice(p)
         )
         val d = p.duration
         pause.update(p.currentPosition, if (d != C.TIME_UNSET && d > 0) d else 0)

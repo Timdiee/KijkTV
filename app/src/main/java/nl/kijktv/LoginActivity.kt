@@ -30,6 +30,7 @@ class LoginActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
+        setupBackButton()
         prefs = Prefs(this)
 
         server = findViewById(R.id.server)

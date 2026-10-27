@@ -80,6 +80,7 @@ class GuideGridActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_guide_grid)
+        setupBackButton()
         prefs = Prefs(this)
         list = Repo.playList
         if (list.isEmpty()) { finish(); return }

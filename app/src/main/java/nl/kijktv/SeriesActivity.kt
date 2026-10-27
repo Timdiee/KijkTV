@@ -39,6 +39,7 @@ class SeriesActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_series)
+        setupBackButton()
         prefs = Prefs(this)
 
         val id = intent.getIntExtra("id", -1)

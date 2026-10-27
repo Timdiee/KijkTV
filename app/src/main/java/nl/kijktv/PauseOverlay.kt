@@ -15,7 +15,9 @@ class PauseOverlay(
     private val onResume: () -> Unit,
     private val onSeek: (Long) -> Unit,
     private val onRestart: () -> Unit,
-    private val onNext: () -> Unit
+    private val onNext: () -> Unit,
+    private val onSubtitles: () -> Unit = {},
+    private val onAudio: () -> Unit = {}
 ) {
     private val root: View = activity.findViewById(R.id.pauseOverlay)
     private val label: TextView = activity.findViewById(R.id.pauseLabel)
@@ -30,6 +32,8 @@ class PauseOverlay(
     private val fwd: Button = activity.findViewById(R.id.pauseFwd)
     private val restart: Button = activity.findViewById(R.id.pauseRestart)
     private val next: Button = activity.findViewById(R.id.pauseNext)
+    private val subs: Button = activity.findViewById(R.id.pauseSubs)
+    private val audio: Button = activity.findViewById(R.id.pauseAudio)
 
     val isShowing get() = root.visibility == View.VISIBLE
 
@@ -39,6 +43,9 @@ class PauseOverlay(
         fwd.setOnClickListener { onSeek(10_000) }
         restart.setOnClickListener { onRestart() }
         next.setOnClickListener { onNext() }
+        subs.setOnClickListener { onSubtitles() }
+        audio.setOnClickListener { onAudio() }
+        activity.findViewById<View>(R.id.pauseExit).setOnClickListener { activity.onBackPressed() }
     }
 
     /**
@@ -51,8 +58,12 @@ class PauseOverlay(
         description: String,
         seekable: Boolean,
         canRestart: Boolean,
-        nextLabel: String?
+        nextLabel: String?,
+        showSubtitles: Boolean = false,
+        showAudio: Boolean = false
     ) {
+        subs.visibility = if (showSubtitles) View.VISIBLE else View.GONE
+        audio.visibility = if (showAudio) View.VISIBLE else View.GONE
         label.text = heading
         title.text = titleText
         sub.text = subText

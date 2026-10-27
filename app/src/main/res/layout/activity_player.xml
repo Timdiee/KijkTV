@@ -145,8 +145,20 @@
             android:layout_height="wrap_content"
             android:layout_gravity="top|start"
             android:layout_marginStart="48dp"
-            android:layout_marginTop="56dp"
+            android:layout_marginTop="28dp"
             android:orientation="vertical">
+
+            <ImageButton
+                android:id="@+id/pauseExit"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/round_btn_bg"
+                android:contentDescription="Terug"
+                android:padding="10dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_arrow_back"
+                android:tint="@color/round_btn_text" />
 
             <TextView
                 android:id="@+id/pauseLabel"
@@ -253,6 +265,8 @@
                 <Button android:id="@+id/pauseFwd" style="@style/PauseButton" android:drawableStart="@drawable/ic_forward" android:drawablePadding="8dp" android:drawableTint="@color/round_btn_text" android:text="10 sec" />
                 <Button android:id="@+id/pauseRestart" style="@style/PauseButton" android:drawableStart="@drawable/ic_replay" android:drawablePadding="8dp" android:drawableTint="@color/round_btn_text" android:text="Vanaf begin" />
                 <Button android:id="@+id/pauseNext" style="@style/PauseButton" android:drawableStart="@drawable/ic_skip_next" android:drawablePadding="8dp" android:drawableTint="@color/round_btn_text" android:text="Volgende aflevering" android:visibility="gone" />
+                <Button android:id="@+id/pauseSubs" style="@style/PauseButton" android:drawableStart="@drawable/ic_subtitles" android:drawablePadding="8dp" android:drawableTint="@color/round_btn_text" android:text="Ondertiteling" android:visibility="gone" />
+                <Button android:id="@+id/pauseAudio" style="@style/PauseButton" android:drawableStart="@drawable/ic_audio" android:drawablePadding="8dp" android:drawableTint="@color/round_btn_text" android:text="Audio" android:visibility="gone" />
             </LinearLayout>
         </LinearLayout>
     </FrameLayout>

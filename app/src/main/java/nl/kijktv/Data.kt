@@ -1,6 +1,7 @@
 package nl.kijktv
 
 import android.content.Context
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.UnstableApi
@@ -350,7 +351,23 @@ class Prefs(ctx: Context) {
         get() = sp.getString("decoder", DECODER_AUTO) ?: DECODER_AUTO
         set(v) { sp.edit().putString("decoder", v).apply() }
 
+    /** Taal van de ondertiteling bij films/series ("off" = uit). Standaard Nederlands als die er is. */
+    var subtitleLang: String
+        get() = sp.getString("subLang", "nl") ?: "nl"
+        set(v) { sp.edit().putString("subLang", v).apply() }
+
+    /** Voorkeurstaal voor audio ("" = wat de film standaard heeft). */
+    var audioLang: String
+        get() = sp.getString("audioLang", "") ?: ""
+        set(v) { sp.edit().putString("audioLang", v).apply() }
+
+    /** 0 = klein, 1 = normaal, 2 = groot, 3 = extra groot. */
+    var subtitleSize: Int
+        get() = sp.getInt("subSize", 1)
+        set(v) { sp.edit().putInt("subSize", v).apply() }
+
     companion object {
+        const val SUB_OFF = "off"
         const val DECODER_AUTO = "auto"
         const val DECODER_SOFTWARE = "software"
         const val MODE_SMOOTH = "smooth"
@@ -377,7 +394,8 @@ object Players {
     @Volatile private var fast = false
     @Volatile private var format = Prefs.FORMAT_AUTO
 
-    fun create(ctx: Context): ExoPlayer {
+    /** @param vod true voor films/series/terugkijken: dan gaat de ondertiteling volgens de voorkeur aan. */
+    fun create(ctx: Context, vod: Boolean = false): ExoPlayer {
         val prefs = Prefs(ctx)
         fast = prefs.playMode == Prefs.MODE_FAST
         format = prefs.streamFormat
@@ -421,10 +439,22 @@ object Players {
             }
         }
 
-        return ExoPlayer.Builder(ctx, renderers)
+        val player = ExoPlayer.Builder(ctx, renderers)
             .setMediaSourceFactory(DefaultMediaSourceFactory(dataSource, extractors))
             .setLoadControl(loadControl)
             .build()
+
+        // Ondertiteling en audiotaal volgens de voorkeur. Bij live tv staat ondertiteling standaard uit.
+        val sub = prefs.subtitleLang
+        val tp = player.trackSelectionParameters.buildUpon()
+        if (!vod || sub == Prefs.SUB_OFF) {
+            tp.setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
+        } else {
+            tp.setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false).setPreferredTextLanguage(sub)
+        }
+        if (prefs.audioLang.isNotEmpty()) tp.setPreferredAudioLanguage(prefs.audioLang)
+        player.trackSelectionParameters = tp.build()
+        return player
     }
 
     /** Past het streamtype (TS of HLS) toe op live-links van Xtream-servers. */

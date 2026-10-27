@@ -121,8 +121,11 @@ class VodPlayerActivity : Activity() {
             onResume = { togglePause() },
             onSeek = { ms -> seekBy(ms) },
             onRestart = { player?.seekTo(0); if (player?.playWhenReady == false) togglePause() },
-            onNext = { if (nextEpisode() != null) { pause.hide(); savePosition(); onEnded() } }
+            onNext = { if (nextEpisode() != null) { pause.hide(); savePosition(); onEnded() } },
+            onSubtitles = { player?.let { TrackMenu.showSubtitles(this, it, playerView, true) } },
+            onAudio = { player?.let { TrackMenu.showAudio(this, it, true) } }
         )
+        TrackMenu.applyStyle(playerView, Prefs(this).subtitleSize)
 
         val i = intent
         val url = i.getStringExtra("url")
@@ -146,7 +149,7 @@ class VodPlayerActivity : Activity() {
     override fun onStart() {
         super.onStart()
         if (!::item.isInitialized) return
-        val p = Players.create(this)
+        val p = Players.create(this, vod = true)
         p.addListener(listener)
         playerView.player = p
         player = p
@@ -267,7 +270,9 @@ class VodPlayerActivity : Activity() {
         val next = nextEpisode()
         pause.show(
             heading, item.title, item.subtitle, currentPlot, seekable = true, canRestart = true,
-            nextLabel = next?.let { "Volgende: ${Vod.episodeLabel(it)}" }
+            nextLabel = next?.let { "Volgende: ${Vod.episodeLabel(it)}" },
+            showSubtitles = true,
+            showAudio = TrackMenu.hasAudioChoice(p)
         )
         pause.update(p.currentPosition, durationOf(p))
         fetchMoviePlot()
@@ -323,6 +328,10 @@ class VodPlayerActivity : Activity() {
                 return true
             }
             KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_INFO -> { showInfo(); return true }
+            KeyEvent.KEYCODE_CAPTIONS, KeyEvent.KEYCODE_S -> {
+                player?.let { TrackMenu.showSubtitles(this, it, playerView, true) }
+                return true
+            }
             KeyEvent.KEYCODE_MEDIA_NEXT -> {
                 if (nextEpisode() != null) { savePosition(); onEnded() }
                 return true
