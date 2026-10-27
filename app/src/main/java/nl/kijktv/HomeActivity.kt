@@ -153,6 +153,7 @@ class HomeActivity : Activity() {
         findViewById<Button>(R.id.navHome).setOnClickListener { focusFirstCard() }
         findViewById<Button>(R.id.navLive).setOnClickListener { startActivity(Intent(this, MainActivity::class.java)) }
         findViewById<Button>(R.id.navGuide).setOnClickListener { openGuide() }
+        findViewById<Button>(R.id.navCatchup).setOnClickListener { startActivity(MainActivity.catchup(this)) }
         findViewById<Button>(R.id.navMovies).setOnClickListener { startActivity(MediaActivity.movies(this)) }
         findViewById<Button>(R.id.navSeries).setOnClickListener { startActivity(MediaActivity.series(this)) }
         findViewById<Button>(R.id.navHistory).setOnClickListener { startActivity(Intent(this, HistoryActivity::class.java)) }

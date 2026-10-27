@@ -33,6 +33,12 @@ class MainActivity : Activity() {
     companion object {
         const val KEY_FAV = "__kijktv_fav__"
         const val KEY_ALL = "__kijktv_all__"
+        const val KEY_CU = "__kijktv_cu__"
+        const val EXTRA_GROUP = "group"
+
+        /** Opent Live tv direct in de lijst met zenders die je kunt terugkijken. */
+        fun catchup(ctx: android.content.Context) =
+            android.content.Intent(ctx, MainActivity::class.java).putExtra(EXTRA_GROUP, KEY_CU)
     }
 
     private lateinit var prefs: Prefs
@@ -117,7 +123,9 @@ class MainActivity : Activity() {
         )
         channelAdapter = ChannelAdapter(
             onFocus = { _, c -> focused = c; showInfo(c); schedulePreview(c) },
-            onClick = { i, _ -> openPlayer(i) },
+            onClick = { i, _ ->
+                if (currentGroup == KEY_CU && search.text.isEmpty()) openChannelProgrammes(i) else openPlayer(i)
+            },
             onLongClick = { _, c -> toggleFavorite(c) }
         )
         groupsView.layoutManager = LinearLayoutManager(this)
@@ -264,8 +272,9 @@ class MainActivity : Activity() {
         byGroup = list.groupBy { it.group }
         updateStatus()
         rebuildGroups()
-        val saved = prefs.lastGroup
+        val saved = intent.getStringExtra(EXTRA_GROUP)?.also { intent.removeExtra(EXTRA_GROUP) } ?: prefs.lastGroup
         val start = when {
+            saved == KEY_CU -> KEY_CU
             saved != null && (saved == KEY_ALL || saved == KEY_FAV || byGroup.containsKey(saved)) -> saved
             prefs.favorites().isNotEmpty() -> KEY_FAV
             else -> KEY_ALL
@@ -284,10 +293,15 @@ class MainActivity : Activity() {
         return Repo.all.filter { favs.contains(it.url) }
     }
 
+    /** Zenders die je aanbieder opneemt, met de meeste dagen terug bovenaan. */
+    private fun catchupChannels(): List<Channel> =
+        Repo.all.filter { it.archiveDays > 0 }.sortedByDescending { it.archiveDays }
+
     private fun rebuildGroups() {
         val items = ArrayList<GroupItem>()
         items.add(GroupItem(KEY_FAV, "Favorieten", favoriteChannels().size))
         items.add(GroupItem(KEY_ALL, "Alle zenders", Repo.all.size))
+        items.add(GroupItem(KEY_CU, "Terugkijken", catchupChannels().size))
         for ((name, chans) in byGroup) items.add(GroupItem(name, name, chans.size))
         groupAdapter.submit(items)
         groupAdapter.setActive(currentGroup)
@@ -296,6 +310,7 @@ class MainActivity : Activity() {
     private fun groupLabel(key: String) = when (key) {
         KEY_FAV -> "Favorieten"
         KEY_ALL -> "Alle zenders"
+        KEY_CU -> "Terugkijken"
         else -> key
     }
 
@@ -310,11 +325,15 @@ class MainActivity : Activity() {
         current = when (key) {
             KEY_FAV -> favoriteChannels()
             KEY_ALL -> Repo.all
+            KEY_CU -> catchupChannels()
             else -> byGroup[key] ?: emptyList()
         }
-        groupTitle.text = if (key == KEY_FAV && current.isEmpty())
-            "Nog geen favorieten · houd OK ingedrukt op een zender"
-        else "${groupLabel(key)}  ·  ${current.size} zenders"
+        groupTitle.text = when {
+            key == KEY_FAV && current.isEmpty() -> "Nog geen favorieten · houd OK ingedrukt op een zender"
+            key == KEY_CU && current.isEmpty() -> "Je aanbieder neemt geen zenders op om terug te kijken"
+            key == KEY_CU -> "Terugkijken  ·  ${current.size} zenders  ·  OK = kies programma of tijd"
+            else -> "${groupLabel(key)}  ·  ${current.size} zenders"
+        }
         channelAdapter.submit(current, prefs.favorites())
         channelsView.scrollToPosition(0)
         groupAdapter.setActive(key)

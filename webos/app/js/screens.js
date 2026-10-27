@@ -112,7 +112,7 @@
         var bar = el('div', 'nav');
         bar.appendChild(el('div', 'nav-logo', 'KijkTV'));
         var items = [
-            ['home', 'Home'], ['live', 'Live tv'], ['guide', 'Tv-gids'],
+            ['home', 'Home'], ['live', 'Live tv'], ['guide', 'Tv-gids'], ['catchup', 'Terugkijken'],
             ['movies', 'Films'], ['series', 'Series'], ['history', 'Geschiedenis']
         ];
         items.forEach(function (it) {
@@ -135,6 +135,7 @@
         var top = KTV.screens.top();
         if (where === 'home') { while (KTV.screens.stack.length > 1) KTV.screens.pop(); return; }
         if (where === 'live') KTV.screens.push(KTV.Live());
+        if (where === 'catchup') KTV.screens.push(KTV.Live('__cu'));
         if (where === 'guide') {
             var favs = KTV.fav.channels();
             KTV.screens.push(KTV.Guide(favs.length ? favs : D.channels, 0, favs.length ? 'Jouw zenders' : 'Alle zenders'));
@@ -372,7 +373,7 @@
     }
     KTV.channelRow = channelRow;
 
-    KTV.Live = function () {
+    KTV.Live = function (startGroup) {
         var s = screen('live');
         var r = s.root;
         var head = el('div', 'page-head');
@@ -395,7 +396,7 @@
         r.appendChild(el('div', 'hint', 'OK: kijken   ·   Pijltje rechts: programma\'s en terugkijken   ·   OK lang ingedrukt: favoriet'));
 
         var current = [];
-        var groupKey = KTV.store.get('lastGroup', '__all');
+        var groupKey = startGroup || KTV.store.get('lastGroup', '__all');
 
         var groups = new KTV.VList({
             rowH: 64, cls: 'groups-list',
@@ -418,6 +419,8 @@
             render: channelRow,
             onSelect: function (ch) { showInfo(ch); clearTimeout(s._et); s._et = setTimeout(function () { KTV.epg.request(ch); }, 250); },
             onAct: function (ch, i) {
+                // In de lijst Terugkijken: meteen de programma's en de dag/tijd-keuze.
+                if (groupKey === '__cu' && !search.value) { KTV.screens.push(KTV.Guide(current, i, ch.name)); return; }
                 KTV.store.set('lastChannel', ch.url);
                 KTV.screens.push(KTV.Player.live(current, i));
             },
@@ -443,7 +446,8 @@
 
         function groupList() {
             var g = [{ key: '__fav', name: 'Favorieten', count: KTV.fav.channels().length },
-                { key: '__all', name: 'Alle zenders', count: D.channels.length }];
+                { key: '__all', name: 'Alle zenders', count: D.channels.length },
+                { key: '__cu', name: 'Terugkijken', count: cuChannels().length }];
             D.groups.forEach(function (x) { g.push({ key: x.name, name: x.name, count: x.list.length }); });
             return g;
         }
@@ -453,7 +457,12 @@
             g.forEach(function (x, i) { if (x.key === groupKey) idx = i; });
             groups.setItems(g, idx);
         }
+        function cuChannels() {
+            return D.channels.filter(function (c) { return c.archive > 0; })
+                .sort(function (a, b) { return b.archive - a.archive; });
+        }
         function listFor(key) {
+            if (key === '__cu') return cuChannels();
             if (key === '__fav') return KTV.fav.channels();
             if (key === '__all') return D.channels;
             for (var i = 0; i < D.groups.length; i++) if (D.groups[i].name === key) return D.groups[i].list;
@@ -465,9 +474,10 @@
             KTV.store.set('lastGroup', key);
             search.value = '';
             current = listFor(key);
-            var name = key === '__fav' ? 'Favorieten' : key === '__all' ? 'Alle zenders' : key;
-            chTitle.textContent = name + '  ·  ' + current.length + ' zenders';
-            channels.setEmpty(key === '__fav' ? 'Nog geen favorieten. Houd OK ingedrukt op een zender.' : 'Geen zenders');
+            var name = key === '__fav' ? 'Favorieten' : key === '__all' ? 'Alle zenders' : key === '__cu' ? 'Terugkijken' : key;
+            chTitle.textContent = name + '  ·  ' + current.length + ' zenders' + (key === '__cu' ? '  ·  OK = kies programma of tijd' : '');
+            channels.setEmpty(key === '__fav' ? 'Nog geen favorieten. Houd OK ingedrukt op een zender.'
+                : key === '__cu' ? 'Je aanbieder neemt geen zenders op om terug te kijken.' : 'Geen zenders');
             var idx = 0;
             var last = KTV.store.get('lastChannel', null);
             current.forEach(function (c, i) { if (c.url === last) idx = i; });

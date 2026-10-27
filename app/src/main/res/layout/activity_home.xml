@@ -46,6 +46,7 @@
             <Button android:id="@+id/navHome" style="@style/NavTab" android:text="Home" />
             <Button android:id="@+id/navLive" style="@style/NavTab" android:text="Live tv" />
             <Button android:id="@+id/navGuide" style="@style/NavTab" android:text="Tv-gids" />
+            <Button android:id="@+id/navCatchup" style="@style/NavTab" android:text="Terugkijken" />
             <Button android:id="@+id/navMovies" style="@style/NavTab" android:text="Films" />
             <Button android:id="@+id/navSeries" style="@style/NavTab" android:text="Series" />
             <Button android:id="@+id/navHistory" style="@style/NavTab" android:text="Geschiedenis" />
