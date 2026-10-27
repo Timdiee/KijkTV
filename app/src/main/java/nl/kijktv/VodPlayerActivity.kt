@@ -66,6 +66,9 @@ class VodPlayerActivity : Activity() {
     private lateinit var item: WatchItem
     private var resumeAt = 0L
     private var retried = false
+    private var variants: List<String> = emptyList()
+    private var variant = 0
+    private var readyOnce = false
     private lateinit var pause: PauseOverlay
     private lateinit var touch: android.view.GestureDetector
     @Volatile private var plotFetched = false
@@ -84,12 +87,21 @@ class VodPlayerActivity : Activity() {
     private val listener = object : Player.Listener {
         override fun onPlaybackStateChanged(state: Int) {
             loadingView.visibility = if (state == Player.STATE_BUFFERING) View.VISIBLE else View.GONE
-            if (state == Player.STATE_READY) errorView.visibility = View.GONE
+            if (state == Player.STATE_READY) { errorView.visibility = View.GONE; readyOnce = true }
             if (state == Player.STATE_ENDED) { pause.hide(); onEnded() }
         }
 
         override fun onPlayerError(error: PlaybackException) {
             val p = player ?: return
+            // Terugkijken: de aanbieder gebruikt misschien een andere link-vorm. Probeer de volgende.
+            if (variant + 1 < variants.size && !readyOnce) {
+                variant++
+                p.setMediaItem(Players.item(variants[variant]))
+                p.prepare()
+                if (resumeAt > 0) p.seekTo(resumeAt)
+                p.playWhenReady = true
+                return
+            }
             if (!retried) {
                 retried = true
                 val pos = p.currentPosition
@@ -98,7 +110,13 @@ class VodPlayerActivity : Activity() {
                 return
             }
             loadingView.visibility = View.GONE
-            errorView.text = "Dit kan nu niet afgespeeld worden.\n\nOK  opnieuw proberen     Terug  sluiten"
+            val code = httpCode(error)
+            errorView.text = if (item.kind == WatchItem.CATCHUP)
+                "Dit moment is niet terug te kijken" + (if (code > 0) " (code $code)" else "") + ".\n\n" +
+                    "Je aanbieder heeft hier waarschijnlijk geen opname van.\nProbeer een later tijdstip of een andere dag.\n\n" +
+                    "OK  opnieuw proberen     Terug  sluiten"
+            else
+                "Dit kan nu niet afgespeeld worden" + (if (code > 0) " (code $code)" else "") + ".\n\nOK  opnieuw proberen     Terug  sluiten"
             errorView.visibility = View.VISIBLE
         }
     }
@@ -187,7 +205,10 @@ class VodPlayerActivity : Activity() {
         retried = false
         errorView.visibility = View.GONE
         loadingView.visibility = View.VISIBLE
-        p.setMediaItem(Players.item(item.url))
+        variants = if (item.kind == WatchItem.CATCHUP) Xtream.catchupVariants(item.url) else listOf(item.url)
+        variant = 0
+        readyOnce = false
+        p.setMediaItem(Players.item(variants[0]))
         p.prepare()
         if (resumeAt > 0) p.seekTo(resumeAt)
         p.playWhenReady = true
@@ -195,6 +216,15 @@ class VodPlayerActivity : Activity() {
         infoGroup.text = ""
         if (item.image != null) infoLogo.load(item.image) else { infoLogo.dispose(); infoLogo.setImageDrawable(null) }
         showInfo()
+    }
+
+    private fun httpCode(e: Throwable): Int {
+        var t: Throwable? = e
+        while (t != null) {
+            if (t is androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException) return t.responseCode
+            t = t.cause
+        }
+        return 0
     }
 
     private fun savePosition() {

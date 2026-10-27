@@ -123,6 +123,25 @@ object Xtream {
             "$minutes/${fmt.format(Date(p.start))}/$sid.ts"
     }
 
+    /**
+     * Andere schrijfwijzen van dezelfde terugkijk-link. Aanbieders verschillen hierin;
+     * als de eerste niet werkt probeert de speler de volgende.
+     */
+    fun catchupVariants(url: String): List<String> {
+        val m = Regex("^(.*)/timeshift/([^/]+)/([^/]+)/(\\d+)/([^/]+)/(\\d+)\\.(ts|m3u8)$").find(url)
+            ?: return listOf(url)
+        val (base, u, pw, min, start, sid) = m.destructured
+        val shortMin = minOf(min.toInt(), 120)
+        val out = linkedSetOf(
+            url,
+            "$base/timeshift/$u/$pw/$min/$start/$sid.m3u8",
+            "$base/streaming/timeshift.php?username=$u&password=$pw&stream=$sid&start=$start&duration=$min",
+            "$base/timeshift/$u/$pw/$shortMin/$start/$sid.ts",
+            "$base/streaming/timeshift.php?username=$u&password=$pw&stream=$sid&start=$start&duration=$shortMin"
+        )
+        return out.toList()
+    }
+
     /** Korte gids (nu + straks) voor één zender, als de volledige gids hem niet kent. */
     fun shortEpg(acc: Account, streamId: Int): List<Programme> {
         val text = Http.getText(apiUrl(acc, "get_short_epg&stream_id=$streamId&limit=8"))

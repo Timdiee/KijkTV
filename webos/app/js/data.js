@@ -275,6 +275,20 @@
             if (!a) return null;
             var minutes = Math.max(1, Math.round((p.stop - p.start) / 60000)) + 5;
             return a.server + '/timeshift/' + enc(a.user) + '/' + enc(a.pass) + '/' + minutes + '/' + tzStamp(p.start, D.tz) + '/' + ch.sid + '.ts';
+        },
+        // Andere schrijfwijzen van dezelfde link; aanbieders verschillen hierin.
+        variants: function (url) {
+            var m = /^(.*)\/timeshift\/([^\/]+)\/([^\/]+)\/(\d+)\/([^\/]+)\/(\d+)\.(ts|m3u8)$/.exec(url || '');
+            if (!m) return [url];
+            var b = m[1], u = m[2], pw = m[3], min = m[4], st = m[5], sid = m[6], sm = Math.min(+min, 120);
+            var all = [url,
+                b + '/timeshift/' + u + '/' + pw + '/' + min + '/' + st + '/' + sid + '.m3u8',
+                b + '/streaming/timeshift.php?username=' + u + '&password=' + pw + '&stream=' + sid + '&start=' + st + '&duration=' + min,
+                b + '/timeshift/' + u + '/' + pw + '/' + sm + '/' + st + '/' + sid + '.ts',
+                b + '/streaming/timeshift.php?username=' + u + '&password=' + pw + '&stream=' + sid + '&start=' + st + '&duration=' + sm];
+            var out = [];
+            all.forEach(function (x) { if (out.indexOf(x) < 0) out.push(x); });
+            return out;
         }
     };
 

@@ -280,6 +280,7 @@
         var v = u.video;
         var retried = false, hideTimer = null, saveTimer = null;
         var repeatCount = 0;
+        var variants = item.kind === 'catchup' ? KTV.catchup.variants(item.url) : [item.url], variant = 0, readyOnce = false, startAt = 0;
         var plot = item.plot || '';
         u.num.style.display = 'none';
 
@@ -291,10 +292,11 @@
 
         function start(at) {
             retried = false;
+            variant = 0; readyOnce = false; startAt = at || 0;
             u.error.classList.remove('show');
             u.spinner.classList.add('show');
             KTV.history.record(item);
-            v.src = item.url;
+            v.src = variants[0];
             var started = false;
             v.onloadedmetadata = function () {
                 if (!started && at > 0) { try { v.currentTime = at / 1000; } catch (e) { } }
@@ -379,24 +381,31 @@
         u.bNext._act = function () { save(); goNext(); };
 
         v.addEventListener('waiting', function () { u.spinner.classList.add('show'); });
-        v.addEventListener('playing', function () { u.spinner.classList.remove('show'); u.error.classList.remove('show'); });
+        v.addEventListener('playing', function () { readyOnce = true; u.spinner.classList.remove('show'); u.error.classList.remove('show'); });
         v.addEventListener('ended', function () {
             var d = dur();
             if (d > 0) KTV.history.update(item.key, d, d);
             goNext();
         });
         v.addEventListener('error', function () {
+            if (!readyOnce && variant + 1 < variants.length) {
+                variant++;
+                v.src = variants[variant];
+                v.onloadedmetadata = function () { if (startAt > 0) { try { v.currentTime = startAt / 1000; } catch (e) { } } };
+                var pv = v.play(); if (pv && pv.catch) pv.catch(function () { });
+                return;
+            }
             if (!retried) {
                 retried = true;
                 var at = pos();
-                v.src = item.url;
+                v.src = variants[variant];
                 v.onloadedmetadata = function () { if (at > 0) { try { v.currentTime = at / 1000; } catch (e) { } } };
                 var p = v.play(); if (p && p.catch) p.catch(function () { });
                 return;
             }
             u.spinner.classList.remove('show');
             u.error.textContent = item.kind === 'catchup'
-                ? 'Dit programma is niet terug te kijken.\nDruk op OK om het opnieuw te proberen.'
+                ? 'Dit moment is niet terug te kijken.\nJe aanbieder heeft hier waarschijnlijk geen opname van.\nProbeer een later tijdstip of een andere dag.'
                 : 'Dit kan nu niet afgespeeld worden.\nDruk op OK om het opnieuw te proberen.';
             u.error.classList.add('show');
         });

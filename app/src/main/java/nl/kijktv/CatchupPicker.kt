@@ -32,7 +32,8 @@ object CatchupPicker {
             }.timeInMillis
         }
         dialog(a)
-            .setTitle("Terugkijken: ${ch.name}")
+            .setTitle(if (ch.archiveDays > 0) "Terugkijken: ${ch.name}"
+                      else "Terugkijken: ${ch.name}\n(volgens je aanbieder heeft deze zender geen terugkijken; proberen kan wel)")
             .setItems(dayStarts.map { Fmt.day(it) }.toTypedArray()) { _, i -> chooseTime(a, list, index, dayStarts[i]) }
             .setNegativeButton("Annuleren", null)
             .show()
