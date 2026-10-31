@@ -42,5 +42,5 @@ class App : Application() {
 }
 
 object BuildConfigInfo {
-    const val version = "4.0"
+    const val version = "4.1"
 }

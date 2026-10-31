@@ -64,6 +64,19 @@
                 android:textColor="@color/text"
                 android:textSize="17sp" />
 
+            <TextView
+                android:id="@+id/navProfile"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:layout_marginEnd="8dp"
+                android:contentDescription="Profiel wisselen"
+                android:focusable="true"
+                android:clickable="true"
+                android:gravity="center"
+                android:textColor="#FFFFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
             <ImageButton
                 android:id="@+id/navSettings"
                 android:layout_width="34dp"

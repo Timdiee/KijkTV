@@ -55,6 +55,9 @@ object Sync {
 
     private fun itemId(key: String) = key.replace(Regex("[^A-Za-z0-9_-]"), "_")
 
+    /** Waar de geschiedenis van een profiel staat (het eerste profiel op de oude plek). */
+    private fun hPath(pid: String) = if (pid == Profiles.MAIN) "h" else "hp/" + pid
+
     // ---------- Links zonder wachtwoord ----------
 
     private fun hideLogin(acc: Account, url: String): String {
@@ -125,7 +128,9 @@ object Sync {
         val app = ctx.applicationContext
         val acc = Prefs(app).account
         val key = keyFor(acc) ?: return
-        val id = itemId(w.key)
+        val pid = Profiles.current(app)
+        val id = pid + "/" + itemId(w.key)
+        val path = key + "/" + hPath(pid) + "/" + itemId(w.key)
         val json = toJson(acc!!, w).toString()
         synchronized(pending) {
             latest[id] = json
@@ -135,7 +140,7 @@ object Sync {
                 val body = synchronized(pending) { pending.remove(id); latest.remove(id) }
                 if (body != null) pool.execute {
                     try {
-                        if (request("PUT", "$key/h/$id", body) != null) markSent(app, w.key, JSONObject(body).optLong("at"))
+                        if (request("PUT", path, body) != null) markSent(app, pid + "|" + w.key, JSONObject(body).optLong("at"))
                     } catch (_: Exception) { }
                 }
             }
@@ -157,15 +162,34 @@ object Sync {
     fun removed(ctx: Context, itemKey: String, kind: String) {
         if (!syncable(kind)) return
         val key = keyFor(Prefs(ctx).account) ?: return
-        val id = itemId(itemKey)
+        val pid = Profiles.current(ctx)
+        val id = pid + "/" + itemId(itemKey)
         synchronized(pending) { pending.remove(id)?.let { main.removeCallbacks(it) }; latest.remove(id) }
-        pool.execute { try { request("DELETE", "$key/h/$id") } catch (_: Exception) { } }
+        val path = key + "/" + hPath(pid) + "/" + itemId(itemKey)
+        pool.execute { try { request("DELETE", path) } catch (_: Exception) { } }
     }
 
     fun cleared(ctx: Context) {
         val key = keyFor(Prefs(ctx).account) ?: return
-        synchronized(pending) { pending.values.forEach { main.removeCallbacks(it) }; pending.clear(); latest.clear() }
-        pool.execute { try { request("DELETE", "$key/h") } catch (_: Exception) { } }
+        val pid = Profiles.current(ctx)
+        synchronized(pending) {
+            val mine = pending.keys.filter { it.startsWith(pid + "/") }
+            for (k in mine) { pending.remove(k)?.let { main.removeCallbacks(it) }; latest.remove(k) }
+        }
+        val path = key + "/" + hPath(pid)
+        pool.execute { try { request("DELETE", path) } catch (_: Exception) { } }
+    }
+
+    fun profileChanged(ctx: Context, p: Profile) {
+        val key = keyFor(Prefs(ctx).account) ?: return
+        val body = Profiles.toJson(p).toString()
+        pool.execute { try { request("PUT", key + "/p/" + p.id, body) } catch (_: Exception) { } }
+    }
+
+    fun profileDeleted(ctx: Context, pid: String) {
+        if (pid == Profiles.MAIN) return
+        val key = keyFor(Prefs(ctx).account) ?: return
+        pool.execute { try { request("DELETE", key + "/hp/" + pid) } catch (_: Exception) { } }
     }
 
     fun favoritesChanged(ctx: Context) {
@@ -210,12 +234,23 @@ object Sync {
                 val text = request("GET", key) ?: return@execute
                 val root = if (text.trim() == "null") JSONObject() else JSONObject(text)
                 val sp = prefs(app)
-                val lastSync = sp.getLong("last_$key", 0L)
-                val syncStart = System.currentTimeMillis()
 
-                // Kijkgeschiedenis
+                // Profielen
+                val merged = Profiles.merge(app, root.optJSONObject("p"))
+                if (merged.second) changed = true
+                for (p in merged.first) put(key + "/p/" + p.id, Profiles.toJson(p).toString())
+
+                val pid = Profiles.current(app)
+                val lastKey = if (pid == Profiles.MAIN) "last_$key" else "last_" + key + "_" + pid
+                val lastSync = sp.getLong(lastKey, 0L)
+                val syncStart = System.currentTimeMillis()
+                fun same() = Profiles.current(app) == pid
+                val hp = hPath(pid)
+
+                // Kijkgeschiedenis van het gekozen profiel
                 val remote = HashMap<String, WatchItem>()
-                root.optJSONObject("h")?.let { h ->
+                val hNode = if (pid == Profiles.MAIN) root.optJSONObject("h") else root.optJSONObject("hp")?.optJSONObject(pid)
+                hNode?.let { h ->
                     for (id in h.keys()) {
                         val w = h.optJSONObject(id)?.let { fromJson(acc!!, it) } ?: continue
                         remote[w.key] = w
@@ -223,20 +258,22 @@ object Sync {
                 }
                 val local = History.all(app).filter { syncable(it.kind) }.associateBy { it.key }
                 for (r in remote.values) {
+                    if (!same()) { ok = false; break }
                     val l = local[r.key]
                     if (l == null || r.updatedAt > l.updatedAt) { History.applyRemote(app, r); changed = true }
                 }
                 for (l in local.values) {
+                    if (!same()) { ok = false; break }
                     val r = remote[l.key]
                     if (r == null) {
-                        if (l.updatedAt <= lastSync || l.updatedAt <= sentPrefs(app).getLong(l.key, 0L)) {
+                        if (l.updatedAt <= lastSync || l.updatedAt <= sentPrefs(app).getLong(pid + "|" + l.key, 0L)) {
                             // Op een ander apparaat verwijderd.
                             History.removeLocal(app, l.key); changed = true
                         } else {
-                            put("$key/h/${itemId(l.key)}", toJson(acc!!, l).toString())
+                            put(key + "/" + hp + "/" + itemId(l.key), toJson(acc!!, l).toString())
                         }
                     } else if (l.updatedAt > r.updatedAt) {
-                        put("$key/h/${itemId(l.key)}", toJson(acc!!, l).toString())
+                        put(key + "/" + hp + "/" + itemId(l.key), toJson(acc!!, l).toString())
                     }
                 }
 
@@ -263,10 +300,10 @@ object Sync {
 
                 // Alleen als alles is aangekomen: anders zou een niet-verstuurd item later als "verwijderd" gelden.
                 if (ok) {
-                    sp.edit().putLong("last_$key", syncStart).apply()
+                    sp.edit().putLong(lastKey, syncStart).apply()
                     val sent = sentPrefs(app)
                     val ed = sent.edit()
-                    for ((k, v) in sent.all) if (v is Long && v <= syncStart) ed.remove(k)
+                    for ((k, v) in sent.all) if (k.startsWith(pid + "|") && v is Long && v <= syncStart) ed.remove(k)
                     ed.apply()
                 }
             } catch (_: Exception) {

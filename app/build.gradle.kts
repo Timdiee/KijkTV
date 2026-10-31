@@ -11,8 +11,8 @@ android {
         applicationId = "nl.kijktv"
         minSdk = 21
         targetSdk = 34
-        versionCode = 15
-        versionName = "4.0"
+        versionCode = 16
+        versionName = "4.1"
     }
 
     signingConfigs {

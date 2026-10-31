@@ -42,15 +42,32 @@ class WatchItem(
 object History {
     private const val MAX = 300
     private var items: MutableList<WatchItem>? = null
+    /** Van welk profiel [items] is. */
+    private var loadedFor: String? = null
 
-    private fun file(ctx: Context) = File(ctx.filesDir, "history.json")
+    /** Elk profiel heeft een eigen bestand; het eerste profiel houdt het oude bestand. */
+    private fun file(ctx: Context, profile: String = Profiles.current(ctx)) =
+        File(ctx.filesDir, if (profile == Profiles.MAIN) "history.json" else "history_$profile.json")
+
+    /** Ander profiel gekozen: de lijst opnieuw inlezen. */
+    @Synchronized
+    fun profileChanged() { items = null; loadedFor = null }
+
+    @Synchronized
+    fun deleteProfile(ctx: Context, profile: String) {
+        if (profile == Profiles.MAIN) return
+        try { file(ctx, profile).delete() } catch (_: Exception) { }
+        if (loadedFor == profile) profileChanged()
+    }
 
     @Synchronized
     private fun list(ctx: Context): MutableList<WatchItem> {
+        val pid = Profiles.current(ctx)
+        if (loadedFor != pid) { items = null; loadedFor = pid }
         items?.let { return it }
         val out = ArrayList<WatchItem>()
         try {
-            val f = file(ctx)
+            val f = file(ctx, pid)
             if (f.exists()) {
                 val arr = JSONArray(f.readText())
                 for (i in 0 until arr.length()) {
@@ -86,7 +103,7 @@ object History {
             }
             val tmp = File(ctx.filesDir, "history.tmp")
             tmp.writeText(arr.toString())
-            tmp.renameTo(file(ctx))
+            tmp.renameTo(file(ctx, loadedFor ?: Profiles.current(ctx)))
         } catch (_: Exception) { }
     }
 

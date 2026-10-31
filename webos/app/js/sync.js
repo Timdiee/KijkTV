@@ -66,6 +66,8 @@
         return sha256('kijktv1|' + hostPort(a.server) + '|' + a.user + '|' + a.pass);
     }
     function itemId(key) { return String(key).replace(/[^A-Za-z0-9_-]/g, '_'); }
+    /** Waar de geschiedenis van een profiel staat (het eerste profiel op de oude plek). */
+    function hPath(pid) { return pid === 'main' ? 'h' : 'hp/' + pid; }
     function syncable(kind) { return kind === 'movie' || kind === 'episode' || kind === 'catchup'; }
 
     function hideLogin(a, url) {
@@ -101,15 +103,15 @@
     function quiet(p) { if (p && p.catch) p.catch(function () { }); }
 
     /* ---- Lokale opslag zonder terugkoppeling ---- */
-    function localList() { return store.get('history', []); }
+    function localList() { return store.get(KTV.profiles.histKey(), []); }
     function applyRemote(w) {
         var l = localList().filter(function (x) { return x.key !== w.key; });
         l.push(w);
         l.sort(function (x, y) { return y.at - x.at; });
         if (l.length > 300) l.length = 300;
-        store.set('history', l);
+        store.set(KTV.profiles.histKey(), l);
     }
-    function removeLocal(key) { store.set('history', localList().filter(function (x) { return x.key !== key; })); }
+    function removeLocal(key) { store.set(KTV.profiles.histKey(), localList().filter(function (x) { return x.key !== key; })); }
 
     function favPayload(t) {
         if (!KTV.data.channels.length) return null;
@@ -128,29 +130,41 @@
             if (!w || !syncable(w.kind)) return;
             var a = KTV.account.get(), key = keyFor(a);
             if (!key) return;
-            var id = itemId(w.key);
-            latest[id] = toRemote(a, w);
+            var pid = KTV.profiles.current();
+            var id = pid + '/' + itemId(w.key);
+            latest[id] = { path: key + '/' + hPath(pid) + '/' + itemId(w.key), pid: pid, body: toRemote(a, w) };
             if (pending[id]) return;
-            pending[id] = setTimeout(function () { send(key, id); }, PUSH_DELAY);
+            pending[id] = setTimeout(function () { send(id); }, PUSH_DELAY);
         },
         flush: function () {
             var a = KTV.account.get(), key = keyFor(a);
-            Object.keys(pending).forEach(function (id) { clearTimeout(pending[id]); if (key) send(key, id); });
+            Object.keys(pending).forEach(function (id) { clearTimeout(pending[id]); if (key) send(id); });
         },
         removed: function (w) {
             if (!w || !syncable(w.kind)) return;
             var key = keyFor(KTV.account.get());
             if (!key) return;
-            var id = itemId(w.key);
+            var pid = KTV.profiles.current();
+            var id = pid + '/' + itemId(w.key);
             clearTimeout(pending[id]); delete pending[id]; delete latest[id];
-            quiet(request('DELETE', key + '/h/' + id));
+            quiet(request('DELETE', key + '/' + hPath(pid) + '/' + itemId(w.key)));
         },
         cleared: function () {
             var key = keyFor(KTV.account.get());
             if (!key) return;
-            Object.keys(pending).forEach(function (id) { clearTimeout(pending[id]); });
-            pending = {}; latest = {};
-            quiet(request('DELETE', key + '/h'));
+            var pid = KTV.profiles.current();
+            Object.keys(pending).forEach(function (id) {
+                if (id.indexOf(pid + '/') === 0) { clearTimeout(pending[id]); delete pending[id]; delete latest[id]; }
+            });
+            quiet(request('DELETE', key + '/' + hPath(pid)));
+        },
+        profileChanged: function (p) {
+            var key = keyFor(KTV.account.get());
+            if (key) quiet(request('PUT', key + '/p/' + p.id, { n: p.n, c: p.c, t: p.t, d: p.d ? 1 : 0 }));
+        },
+        profileDeleted: function (pid) {
+            var key = keyFor(KTV.account.get());
+            if (key && pid !== 'main') quiet(request('DELETE', key + '/hp/' + pid));
         },
         favChanged: function () {
             var key = keyFor(KTV.account.get());
@@ -176,14 +190,22 @@
                 var root = null;
                 try { root = JSON.parse(text); } catch (e) { root = null; }
                 root = root || {};
-                var lastSync = store.get('sync.last.' + key, 0);
+                var jobs = [];
+                // Profielen
+                var merged = KTV.profiles.merge(root.p);
+                if (merged.changed) changed = true;
+                merged.newer.forEach(function (p) { jobs.push(put(key + '/p/' + p.id, { n: p.n, c: p.c, t: p.t, d: p.d ? 1 : 0 })); });
+
+                var pid = KTV.profiles.current(), hp = hPath(pid);
+                var lastKey = pid === 'main' ? 'sync.last.' + key : 'sync.last.' + key + '.' + pid;
+                var lastSync = store.get(lastKey, 0);
                 var sent = store.get('sync.sent', {});
                 var syncStart = Date.now();
-                var jobs = [];
 
                 var remote = {};
-                Object.keys(root.h || {}).forEach(function (id) {
-                    var w = fromRemote(a, root.h[id]);
+                var hNode = pid === 'main' ? root.h : (root.hp && root.hp[pid]);
+                Object.keys(hNode || {}).forEach(function (id) {
+                    var w = fromRemote(a, hNode[id]);
                     if (w) remote[w.key] = w;
                 });
                 var local = {};
@@ -195,9 +217,9 @@
                 Object.keys(local).forEach(function (k) {
                     var l = local[k], r = remote[k];
                     if (!r) {
-                        if ((l.at || 0) <= lastSync || (l.at || 0) <= (sent[k] || 0)) { removeLocal(k); changed = true; }
-                        else jobs.push(put(key + '/h/' + itemId(k), toRemote(a, l)));
-                    } else if ((l.at || 0) > r.at) jobs.push(put(key + '/h/' + itemId(k), toRemote(a, l)));
+                        if ((l.at || 0) <= lastSync || (l.at || 0) <= (sent[pid + '|' + k] || 0)) { removeLocal(k); changed = true; }
+                        else jobs.push(put(key + '/' + hp + '/' + itemId(k), toRemote(a, l)));
+                    } else if ((l.at || 0) > r.at) jobs.push(put(key + '/' + hp + '/' + itemId(k), toRemote(a, l)));
                 });
 
                 if (KTV.data.channels.length) {
@@ -218,7 +240,12 @@
                     }
                 }
                 return Promise.all(jobs).then(function () {
-                    if (ok) { store.set('sync.last.' + key, syncStart); var m = store.get('sync.sent', {}); Object.keys(m).forEach(function (k) { if (m[k] <= syncStart) delete m[k]; }); store.set('sync.sent', m); }
+                    if (ok && KTV.profiles.current() === pid) {
+                        store.set(lastKey, syncStart);
+                        var m = store.get('sync.sent', {});
+                        Object.keys(m).forEach(function (k) { if (k.indexOf(pid + '|') === 0 && m[k] <= syncStart) delete m[k]; });
+                        store.set('sync.sent', m);
+                    }
                 });
             }).catch(function () { /* geen internet: later opnieuw */ }).then(function () {
                 pulling = false;
@@ -228,11 +255,11 @@
         }
     };
 
-    function send(key, id) {
+    function send(id) {
         delete pending[id];
-        var body = latest[id];
+        var job = latest[id];
         delete latest[id];
-        if (body) quiet(request('PUT', key + '/h/' + id, body).then(function () { markSent(body.key, body.at); }));
+        if (job) quiet(request('PUT', job.path, job.body).then(function () { markSent(job.pid + '|' + job.body.key, job.body.at); }));
     }
     /** Onthoud tot welke stand een item al op de server stond (voor het herkennen van verwijderen). */
     function markSent(k, at) {

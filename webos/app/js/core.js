@@ -190,6 +190,13 @@ KTV.focus = {
 
     set: function (e) {
         if (!e || e === this.cur) return;
+        // Een scherm dat (nog) onder een ander scherm ligt mag de focus niet pakken.
+        var top = KTV.screens && KTV.screens.top && KTV.screens.top();
+        if (top) {
+            var n = e;
+            while (n && !(n.classList && n.classList.contains('screen'))) n = n.parentNode;
+            if (n && n !== top.root) return;
+        }
         var old = this.cur;
         if (old) {
             old.classList.remove('focused');
@@ -400,6 +407,40 @@ KTV.toast = function (text) {
 };
 
 KTV.dialog = {
+    /** Venster met een tekstvak. cb(tekst) bij Opslaan; niets bij Annuleren/terug. */
+    input: function (title, value, cb) {
+        var prevFocus = KTV.focus.cur;
+        var layer = KTV.el('div', 'layer open');
+        var box = KTV.el('div', 'dialog');
+        box.appendChild(KTV.el('div', 'dialog-title', title));
+        var input = KTV.el('input', 'input f dialog-input');
+        input.type = 'text';
+        input.value = value || '';
+        input.placeholder = 'Naam';
+        input.maxLength = 20;
+        input.setAttribute('autocomplete', 'off');
+        box.appendChild(input);
+        var save = KTV.el('div', 'dialog-opt f', 'Opslaan');
+        var cancel = KTV.el('div', 'dialog-opt f', 'Annuleren');
+        box.appendChild(save); box.appendChild(cancel);
+        layer.appendChild(box);
+        document.body.appendChild(layer);
+        function close(ok) {
+            if (layer.parentNode) layer.parentNode.removeChild(layer);
+            KTV.focus.cur = null;
+            if (prevFocus && document.body.contains(prevFocus)) KTV.focus.set(prevFocus);
+            else if (KTV.screens.top()) KTV.focus.first(KTV.screens.top().root);
+            var v = input.value.trim();
+            if (ok) { if (v) cb(v); else KTV.toast('Vul een naam in'); }
+        }
+        save._act = function () { close(true); };
+        cancel._act = function () { close(false); };
+        layer._close = function () { close(false); };
+        KTV.focus.cur = null;
+        KTV.focus.set(input);
+        setTimeout(function () { try { input.focus(); } catch (e) { } }, 50);
+    },
+
     /** Keuzevenster met knoppen onder elkaar. cb(index) of cb(-1) bij terug. */
     choose: function (title, message, options, cb, selected) {
         var prevFocus = KTV.focus.cur;

@@ -5,6 +5,8 @@
     function boot() {
         var a = KTV.account.get();
         KTV.screens.push(a ? KTV.Home() : KTV.Login());
+        // Meer dan één profiel: eerst vragen wie er kijkt (zoals bij Netflix).
+        if (a && KTV.profiles.visible().length > 1) KTV.screens.push(KTV.Profiles(true));
         // Ontwikkelaarsmodus op de achtergrond verlengen (eens per week).
         setTimeout(function () { KTV.devmode.renewIfNeeded(false); }, 8000);
         // Verder kijken van je andere apparaten ophalen (zodra de zenders er zijn, ook favorieten).

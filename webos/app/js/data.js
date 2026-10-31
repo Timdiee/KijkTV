@@ -449,19 +449,101 @@
         }
     };
 
+    /* ---------------- Profielen ---------------- */
+    // Zelfde regels als Android (Profiles.kt). De lijst gaat mee naar je andere apparaten;
+    // welk profiel er op deze tv kijkt, blijft op de tv.
+    var MAIN = 'main';
+    KTV.profiles = {
+        MAIN: MAIN,
+        MAX: 6,
+        COLORS: ['#2F6FED', '#E5484D', '#30A46C', '#F5A524', '#8E4EC6', '#0EA5E9'],
+        chosen: false,
+        all: function () {
+            var l = store.get('profiles', []);
+            if (!l.some(function (p) { return p.id === MAIN; })) l.unshift({ id: MAIN, n: 'Ik', c: 0, t: 0 });
+            return l;
+        },
+        save: function (l) { store.set('profiles', l); },
+        visible: function () { return this.all().filter(function (p) { return !p.d; }); },
+        current: function () {
+            var id = store.get('profile.cur', MAIN);
+            return id === MAIN || this.visible().some(function (p) { return p.id === id; }) ? id : MAIN;
+        },
+        currentProfile: function () {
+            var id = this.current(), l = this.all();
+            for (var i = 0; i < l.length; i++) if (l[i].id === id) return l[i];
+            return l[0];
+        },
+        histKey: function () { var id = this.current(); return id === MAIN ? 'history' : 'history.' + id; },
+        setCurrent: function (id) {
+            if (KTV.sync) KTV.sync.flush();
+            store.set('profile.cur', id);
+            this.chosen = true;
+        },
+        initial: function (p) { return (String(p.n || '').trim().charAt(0) || '?').toUpperCase(); },
+        color: function (p) { return this.COLORS[Math.max(0, Math.min(this.COLORS.length - 1, p.c || 0))]; },
+        add: function (name) {
+            var l = this.all(), vis = l.filter(function (p) { return !p.d; });
+            if (vis.length >= this.MAX) return null;
+            var used = {};
+            vis.forEach(function (p) { used[p.c] = 1; });
+            var c = 0;
+            while (used[c] && c < this.COLORS.length) c++;
+            if (c >= this.COLORS.length) c = l.length % this.COLORS.length;
+            var p = { id: Date.now().toString(16) + Math.floor(Math.random() * 4095).toString(16), n: String(name).trim().slice(0, 20) || 'Profiel', c: c, t: Date.now() };
+            l.push(p);
+            this.save(l);
+            if (KTV.sync) KTV.sync.profileChanged(p);
+            return p;
+        },
+        rename: function (id, name) {
+            var l = this.all(), hit = null;
+            l.forEach(function (p) { if (p.id === id) { p.n = String(name).trim().slice(0, 20) || p.n; p.t = Date.now(); hit = p; } });
+            this.save(l);
+            if (hit && KTV.sync) KTV.sync.profileChanged(hit);
+        },
+        del: function (id) {
+            if (id === MAIN) return;
+            var l = this.all(), hit = null;
+            l.forEach(function (p) { if (p.id === id) { p.d = 1; p.t = Date.now(); hit = p; } });
+            this.save(l);
+            store.remove('history.' + id);
+            if (store.get('profile.cur', MAIN) === id) store.set('profile.cur', MAIN);
+            if (hit && KTV.sync) { KTV.sync.profileChanged(hit); KTV.sync.profileDeleted(id); }
+        },
+        /** Lijst van een ander apparaat samenvoegen: { newer: [...], changed: bool } */
+        merge: function (remote) {
+            var l = this.all(), byId = {}, changed = false;
+            l.forEach(function (p) { byId[p.id] = p; });
+            Object.keys(remote || {}).forEach(function (id) {
+                var o = remote[id] || {};
+                var r = { id: id, n: o.n || '', c: +o.c || 0, t: +o.t || 0, d: o.d ? 1 : 0 };
+                var p = byId[id];
+                if (!p || r.t > (p.t || 0)) {
+                    if (r.d && (!p || !p.d)) store.remove('history.' + id);
+                    if (!p) { l.push(r); byId[id] = r; } else { p.n = r.n; p.c = r.c; p.t = r.t; p.d = r.d; }
+                    changed = true;
+                }
+            });
+            var newer = l.filter(function (p) { return (p.t || 0) > 0 && (!remote || !remote[p.id] || (+remote[p.id].t || 0) < p.t); });
+            if (changed) this.save(l);
+            return { newer: newer, changed: changed };
+        }
+    };
+
     /* ---------------- Geschiedenis ---------------- */
 
     KTV.history = {
         all: function () {
-            return store.get('history', []).sort(function (a, b) { return b.at - a.at; });
+            return store.get(KTV.profiles.histKey(), []).sort(function (a, b) { return b.at - a.at; });
         },
         get: function (key) {
-            var l = store.get('history', []);
+            var l = store.get(KTV.profiles.histKey(), []);
             for (var i = 0; i < l.length; i++) if (l[i].key === key) return l[i];
             return null;
         },
         record: function (item) {
-            var l = store.get('history', []);
+            var l = store.get(KTV.profiles.histKey(), []);
             for (var i = 0; i < l.length; i++) {
                 if (l[i].key === item.key) {
                     if (!item.pos) item.pos = l[i].pos;
@@ -476,18 +558,18 @@
             copy.hide = 0;
             l.unshift(copy);
             if (l.length > 300) l.length = 300;
-            store.set('history', l);
+            store.set(KTV.profiles.histKey(), l);
             if (KTV.sync) KTV.sync.changed(copy);
         },
         update: function (key, pos, dur) {
-            var l = store.get('history', []);
+            var l = store.get(KTV.profiles.histKey(), []);
             for (var i = 0; i < l.length; i++) {
                 if (l[i].key === key) {
                     l[i].pos = pos;
                     l[i].hide = 0;
                     if (dur > 0) l[i].dur = dur;
                     l[i].at = Date.now();
-                    store.set('history', l);
+                    store.set(KTV.profiles.histKey(), l);
                     if (KTV.sync) KTV.sync.changed(l[i]);
                     return;
                 }
@@ -495,10 +577,10 @@
         },
         remove: function (key) {
             var w = this.get(key);
-            store.set('history', store.get('history', []).filter(function (x) { return x.key !== key; }));
+            store.set(KTV.profiles.histKey(), store.get(KTV.profiles.histKey(), []).filter(function (x) { return x.key !== key; }));
             if (w && KTV.sync) KTV.sync.removed(w);
         },
-        clear: function () { store.set('history', []); if (KTV.sync) KTV.sync.cleared(); },
+        clear: function () { store.set(KTV.profiles.histKey(), []); if (KTV.sync) KTV.sync.cleared(); },
         isVideo: function (w) { return w.kind === 'movie' || w.kind === 'episode' || w.kind === 'catchup'; },
         finished: function (w) { return w.dur > 0 && w.pos >= w.dur * 0.95; },
         resumable: function (w) { return this.isVideo(w) && w.pos > 60000 && !this.finished(w); },
@@ -506,15 +588,15 @@
         resumeList: function () { var self = this; return this.all().filter(function (w) { return self.resumable(w) && !w.hide; }); },
         /** Uit "Verder kijken" halen; de plek blijft bewaard en komt terug als je weer kijkt. */
         hide: function (key) {
-            var l = store.get('history', []), hit = null;
+            var l = store.get(KTV.profiles.histKey(), []), hit = null;
             l.forEach(function (w) { if (w.key === key) { w.hide = 1; w.at = Date.now(); hit = w; } });
-            store.set('history', l);
+            store.set(KTV.profiles.histKey(), l);
             if (hit && KTV.sync) KTV.sync.changed(hit);
         },
         hideSeries: function (sid) {
-            var l = store.get('history', []), hits = [], now = Date.now();
+            var l = store.get(KTV.profiles.histKey(), []), hits = [], now = Date.now();
             l.forEach(function (w) { if (w.kind === 'episode' && w.sid === sid && !w.hide) { w.hide = 1; w.at = now; hits.push(w); } });
-            store.set('history', l);
+            store.set(KTV.profiles.histKey(), l);
             if (KTV.sync) hits.forEach(function (w) { KTV.sync.changed(w); });
         },
         askHide: function (title, done) {

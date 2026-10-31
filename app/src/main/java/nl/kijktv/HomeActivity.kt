@@ -120,6 +120,8 @@ class HomeActivity : Activity() {
     private val handler = Handler(Looper.getMainLooper())
     private val adapters = ArrayList<CardAdapter>()
     private var heroCard: HomeCard? = null
+    /** Alle kaarten die nu op het scherm staan. */
+    private val shownCards = ArrayList<HomeCard>()
     private var loading = false
     private var vodLoading = false
     private var seenEpg = -1
@@ -159,6 +161,13 @@ class HomeActivity : Activity() {
         findViewById<Button>(R.id.navLive).setOnClickListener { startActivity(Intent(this, MainActivity::class.java)) }
         findViewById<Button>(R.id.navGuide).setOnClickListener { openGuide() }
         findViewById<Button>(R.id.navCatchup).setOnClickListener { startActivity(MainActivity.catchup(this)) }
+        val navProfile = findViewById<TextView>(R.id.navProfile)
+        navProfile.setOnClickListener { startActivity(ProfileActivity.intent(this)) }
+        navProfile.setOnFocusChangeListener { _, _ -> showProfileButton() }
+        // Meer dan één profiel: eerst vragen wie er kijkt (zoals bij Netflix).
+        if (savedInstanceState == null && !Profiles.chosenThisRun && Profiles.visible(this).size > 1) {
+            startActivity(ProfileActivity.intent(this))
+        }
         findViewById<Button>(R.id.navMovies).setOnClickListener { startActivity(MediaActivity.movies(this)) }
         findViewById<Button>(R.id.navSeries).setOnClickListener { startActivity(MediaActivity.series(this)) }
         findViewById<Button>(R.id.navHistory).setOnClickListener { startActivity(Intent(this, HistoryActivity::class.java)) }
@@ -212,13 +221,22 @@ class HomeActivity : Activity() {
         val acc = prefs.account
         if (acc != null && !started) start(acc)
         else if (Repo.all.isNotEmpty()) { buildRows(); ensureEpg(); loadVod() }
+        showProfileButton()
         // Verder kijken van je andere apparaten ophalen.
-        Sync.pull(this) { if (!isFinishing && Repo.all.isNotEmpty()) buildRows() }
+        Sync.pull(this) { if (!isFinishing) { showProfileButton(); if (Repo.all.isNotEmpty()) buildRows() } }
     }
 
     override fun onPause() {
         super.onPause()
         handler.removeCallbacks(ticker)
+    }
+
+    /** Rondje rechtsboven met de letter van wie er kijkt. */
+    private fun showProfileButton() {
+        val v = findViewById<TextView>(R.id.navProfile) ?: return
+        val p = Profiles.currentProfile(this)
+        v.text = ProfileActivity.initial(p)
+        v.background = ProfileActivity.avatar(this, p, 34, v.isFocused)
     }
 
     // ---------- Gegevens ----------
@@ -314,6 +332,7 @@ class HomeActivity : Activity() {
 
         rows.removeAllViews()
         adapters.clear()
+        shownCards.clear()
         val all = Repo.all
         if (all.isEmpty()) {
             message.text = if (loading) "Zenders laden…" else ""
@@ -334,7 +353,10 @@ class HomeActivity : Activity() {
                 action = { History.playWithResume(this, w) }
             )
         }
-        addRow("Verder kijken", resume)
+        addRow(
+            if (Profiles.visible(this).size > 1) "Verder kijken  ·  ${Profiles.currentProfile(this).name}" else "Verder kijken",
+            resume
+        )
 
         // 2. Favoriete zenders (of de eerste zenders)
         val favs = prefs.favorites()
@@ -382,6 +404,9 @@ class HomeActivity : Activity() {
             })
         }
 
+        // Uitgelicht vak hoort bij een kaart die er niet meer staat (bv. ander profiel): de eerste tonen.
+        if (heroCard == null || heroCard !in shownCards) shownCards.firstOrNull()?.let { showHero(it) }
+
         // Focus terugzetten, of de eerste kaart kiezen.
         rows.post {
             val row = if (focusRow in 0 until rows.childCount) focusRow else -1
@@ -399,6 +424,7 @@ class HomeActivity : Activity() {
 
     private fun addRow(title: String, cards: List<HomeCard>) {
         if (cards.isEmpty()) return
+        shownCards.addAll(cards)
         val row = LayoutInflater.from(this).inflate(R.layout.item_home_row, rows, false)
         row.findViewById<TextView>(R.id.rowTitle).text = title
         val list = row.findViewById<RecyclerView>(R.id.rowList)

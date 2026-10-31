@@ -123,6 +123,16 @@
         bar.appendChild(el('div', 'spacer'));
         var clock = el('div', 'nav-clock', KTV.time(Date.now()));
         bar.appendChild(clock);
+        var prof = el('div', 'nav-profile f');
+        function showProf() {
+            var p = KTV.profiles.currentProfile();
+            prof.textContent = KTV.profiles.initial(p);
+            prof.style.background = KTV.profiles.color(p);
+        }
+        showProf();
+        prof._act = function () { KTV.screens.push(KTV.Profiles(false)); };
+        bar.appendChild(prof);
+        bar._prof = showProf;
         var set = el('div', 'nav-btn nav-icon f');
         set.innerHTML = KTV.icon('settings');
         set._act = function () { KTV.settingsMenu(); };
@@ -130,6 +140,84 @@
         bar._clock = clock;
         return bar;
     }
+
+    /* ======================= Profielen ======================= */
+
+    /** "Wie kijkt er?". atStart = bij het opstarten (dan is terug = huidig profiel houden). */
+    KTV.Profiles = function (atStart) {
+        var s = screen('profiles');
+        var r = s.root;
+        var wrap = el('div', 'prof-wrap');
+        wrap.appendChild(el('div', 'prof-title', 'Wie kijkt er?'));
+        var row = el('div', 'prof-row');
+        wrap.appendChild(row);
+        wrap.appendChild(el('div', 'prof-hint', 'Elk profiel heeft een eigen Verder kijken en geschiedenis.\nOK ingedrukt houden: naam wijzigen of verwijderen.'));
+        r.appendChild(wrap);
+        var P = KTV.profiles;
+
+        function tile(name, letter, color, add) {
+            var t = el('div', 'prof-tile f' + (add ? ' add' : ''));
+            var av = el('div', 'prof-avatar', letter);
+            if (color) av.style.background = color;
+            t.appendChild(av);
+            t.appendChild(el('div', 'prof-name', name));
+            return t;
+        }
+        function choose(id) {
+            P.setCurrent(id);
+            KTV.screens.pop();
+            KTV.syncNow(true);
+        }
+        function manage(p) {
+            var opts = p.id === P.MAIN ? ['Naam wijzigen', 'Annuleren'] : ['Naam wijzigen', 'Profiel verwijderen', 'Annuleren'];
+            KTV.dialog.choose(p.n, '', opts, function (i) {
+                if (i === 0) KTV.dialog.input('Naam wijzigen', p.n, function (n) { P.rename(p.id, n); build(p.id); });
+                else if (i === 1 && p.id !== P.MAIN) {
+                    KTV.dialog.choose(p.n + ' verwijderen?', 'Verder kijken en de geschiedenis van dit profiel worden gewist, op al je apparaten.',
+                        ['Verwijderen', 'Annuleren'], function (j) { if (j === 0) { P.del(p.id); build(null); } });
+                }
+            });
+        }
+        function build(focusId) {
+            row.innerHTML = '';
+            var first = null, want = null;
+            var cur = P.current();
+            P.visible().forEach(function (p) {
+                var t = tile(p.n, P.initial(p), P.color(p));
+                t._act = function () { choose(p.id); };
+                t._long = function () { manage(p); };
+                row.appendChild(t);
+                if (!first) first = t;
+                if (p.id === (focusId || cur)) want = t;
+            });
+            if (P.visible().length < P.MAX) {
+                var add = tile('Profiel toevoegen', '+', null, true);
+                add._act = function () { KTV.dialog.input('Nieuw profiel', '', function (n) { var p = P.add(n); if (p) build(p.id); }); };
+                row.appendChild(add);
+                if (focusId === '__add') want = add;
+            }
+            KTV.focus.cur = null;
+            KTV.focus.set(want || first);
+        }
+        s.show = function () {
+            build(null);
+            // Nieuwe profielen van je andere apparaten.
+            KTV.sync.pull(true, function (changed) {
+                if (changed && KTV.screens.top() === s) {
+                    var f = KTV.focus.cur, id = null;
+                    var tiles = row.querySelectorAll('.prof-tile');
+                    var vis = P.visible();
+                    for (var i = 0; i < tiles.length; i++) if (tiles[i] === f && vis[i]) id = vis[i].id;
+                    build(id);
+                }
+            });
+        };
+        s.back = function () {
+            P.chosen = true;
+            if (KTV.screens.stack.length > 1) KTV.screens.pop(); else KTV.exit();
+        };
+        return s;
+    };
 
     KTV.go = function (where) {
         var top = KTV.screens.top();
@@ -281,7 +369,7 @@
                     long: function () { KTV.history.askHide(w.title, function () { KTV.history.hide(w.key); build(); }); }
                 };
             });
-            addRow('Verder kijken', resume);
+            addRow(KTV.profiles.visible().length > 1 ? 'Verder kijken  ·  ' + KTV.profiles.currentProfile().n : 'Verder kijken', resume);
 
             var favs = KTV.fav.channels();
             if (favs.length) addRow('Jouw zenders', channelCards(favs.slice(0, 40), 'Jouw zenders'));
@@ -320,7 +408,7 @@
                 if (vps2[0]) KTV.focus.set(vps2[0]);
             }
             if (vps2.length) firstBuild = false;
-            if (!heroCard && cardsAll[0]) showHero(cardsAll[0]);
+            if ((!heroCard || cardsAll.indexOf(heroCard) < 0) && cardsAll[0]) showHero(cardsAll[0]);
         }
 
         function loadAll() {
@@ -355,8 +443,8 @@
         var timer = setInterval(function () { nav._clock.textContent = KTV.time(Date.now()); onEpg(); }, 20000);
 
         s.show = function () { loadAll(); };
-        s.resume = function () { if (D.channels.length) build(); KTV.devmode.renewIfNeeded(false); };
-        s.syncRefresh = function () { if (D.channels.length) build(); };
+        s.resume = function () { nav._prof(); if (D.channels.length) build(); KTV.devmode.renewIfNeeded(false); };
+        s.syncRefresh = function () { nav._prof(); if (D.channels.length) build(); };
         s.reload = function () { D.channels = []; loadAll(); };
         s.back = function () { KTV.exit(); };
         s.destroy = function () { clearInterval(timer); KTV.epg.offUpdate(onEpg); };

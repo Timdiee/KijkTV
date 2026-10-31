@@ -82,6 +82,13 @@
             android:windowSoftInputMode="adjustNothing|stateHidden" />
 
         <activity
+            android:name=".ProfileActivity"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize"
+            android:exported="false"
+            android:screenOrientation="sensorLandscape"
+            android:windowSoftInputMode="adjustPan|stateHidden" />
+
+        <activity
             android:name=".VodPlayerActivity"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize"
             android:exported="false"
