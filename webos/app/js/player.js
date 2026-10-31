@@ -450,7 +450,7 @@
         s.pause = function () { save(); v.pause(); };
         s.resume = function () { };
         s.back = function () { save(); KTV.screens.pop(); };
-        s.destroy = function () { save(); clearTimeout(hideTimer); clearInterval(saveTimer); stopVideo(v); };
+        s.destroy = function () { save(); clearTimeout(hideTimer); clearInterval(saveTimer); stopVideo(v); if (KTV.sync) KTV.sync.flush(); };
         return s;
     };
 })();

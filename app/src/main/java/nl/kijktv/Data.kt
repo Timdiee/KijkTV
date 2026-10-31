@@ -299,6 +299,7 @@ object Repo {
 
 class Prefs(ctx: Context) {
     private val sp = ctx.getSharedPreferences("kijktv", Context.MODE_PRIVATE)
+    private val app: Context = ctx.applicationContext ?: ctx
 
     var account: Account?
         get() {
@@ -384,7 +385,12 @@ class Prefs(ctx: Context) {
         val set = favorites().toMutableSet()
         val nowFav = if (set.contains(url)) { set.remove(url); false } else { set.add(url); true }
         sp.edit().putStringSet("fav", set).apply()
+        Sync.favoritesChanged(app)
         return nowFav
+    }
+
+    fun setFavorites(urls: Set<String>) {
+        sp.edit().putStringSet("fav", HashSet(urls)).apply()
     }
 }
 

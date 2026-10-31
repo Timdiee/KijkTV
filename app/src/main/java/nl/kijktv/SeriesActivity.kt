@@ -97,6 +97,7 @@ class SeriesActivity : Activity() {
             episodeAdapter.refreshAll()
             updateContinue()
         }
+        Sync.pull(this) { if (!isFinishing && info != null) { episodeAdapter.refreshAll(); updateContinue() } }
     }
 
     private fun allEpisodes(): List<Episode> = info?.seasons?.values?.flatten().orEmpty()

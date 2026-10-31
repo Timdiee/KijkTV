@@ -56,6 +56,7 @@ class HistoryActivity : Activity() {
     override fun onResume() {
         super.onResume()
         refresh()
+        Sync.pull(this, force = true) { if (!isFinishing) refresh() }
     }
 
     private fun setFilter(f: Filter) {

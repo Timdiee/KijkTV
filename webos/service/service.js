@@ -14,8 +14,9 @@ var urlLib = require('url');
 var USER_AGENT = 'KijkTV/1.0 (webOS; LG TV)';
 var MAX_BYTES = 40 * 1024 * 1024;
 
-function get(url, timeoutMs, redirects) {
+function get(url, timeoutMs, redirects, method, body) {
     redirects = redirects || 0;
+    method = method || 'GET';
     return new Promise(function (resolve, reject) {
         var u;
         try { u = urlLib.parse(url); } catch (e) { reject(new Error('Ongeldige link')); return; }
@@ -25,8 +26,10 @@ function get(url, timeoutMs, redirects) {
             hostname: u.hostname,
             port: u.port,
             path: u.path,
-            method: 'GET',
-            headers: { 'User-Agent': USER_AGENT, 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*' },
+            method: method,
+            headers: body !== undefined && body !== null
+                ? { 'User-Agent': USER_AGENT, 'Accept': '*/*', 'Content-Type': 'application/json; charset=utf-8', 'Content-Length': Buffer.byteLength(body) }
+                : { 'User-Agent': USER_AGENT, 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*' },
             rejectUnauthorized: false
         }, function (res) {
             var status = res.statusCode;
@@ -59,6 +62,7 @@ function get(url, timeoutMs, redirects) {
         });
         req.on('error', function (e) { reject(e); });
         req.setTimeout(timeoutMs || 30000, function () { req.abort(); reject(new Error('Time-out: de server reageert niet')); });
+        if (body !== undefined && body !== null) req.write(body);
         req.end();
     });
 }
@@ -130,7 +134,10 @@ function xtreamList(p) {
 var handlers = {
     fetch: function (p) {
         if (!p.url) return Promise.reject(new Error('Geen link opgegeven'));
-        return get(p.url, p.timeout || 45000).then(function (r) { return { status: r.status, body: r.body }; });
+        var method = p.method ? String(p.method).toUpperCase() : 'GET';
+        if (['GET', 'PUT', 'DELETE', 'POST', 'PATCH'].indexOf(method) < 0) return Promise.reject(new Error('Ongeldige methode'));
+        return get(p.url, p.timeout || 45000, 0, method, typeof p.body === 'string' ? p.body : undefined)
+            .then(function (r) { return { status: r.status, body: r.body }; });
     },
     xtreamList: xtreamList,
     ping: function () { return Promise.resolve({ ok: true, node: process.version }); },

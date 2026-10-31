@@ -128,6 +128,12 @@ class MediaActivity : Activity() {
             rebuildCats()
             if (search.text.isEmpty()) selectCat(currentCat, keepScroll = true)
         }
+        Sync.pull(this) {
+            if (!isFinishing && ready) {
+                rebuildCats()
+                if (search.text.isEmpty()) selectCat(currentCat, keepScroll = true)
+            }
+        }
     }
 
     private fun onLoaded() {

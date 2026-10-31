@@ -439,6 +439,7 @@
             var l = this.all(), i = l.indexOf(url);
             if (i >= 0) l.splice(i, 1); else l.push(url);
             store.set('fav', l);
+            if (KTV.sync) KTV.sync.favChanged();
             return i < 0;
         },
         channels: function () {
@@ -475,6 +476,7 @@
             l.unshift(copy);
             if (l.length > 300) l.length = 300;
             store.set('history', l);
+            if (KTV.sync) KTV.sync.changed(copy);
         },
         update: function (key, pos, dur) {
             var l = store.get('history', []);
@@ -484,14 +486,17 @@
                     if (dur > 0) l[i].dur = dur;
                     l[i].at = Date.now();
                     store.set('history', l);
+                    if (KTV.sync) KTV.sync.changed(l[i]);
                     return;
                 }
             }
         },
         remove: function (key) {
+            var w = this.get(key);
             store.set('history', store.get('history', []).filter(function (x) { return x.key !== key; }));
+            if (w && KTV.sync) KTV.sync.removed(w);
         },
-        clear: function () { store.set('history', []); },
+        clear: function () { store.set('history', []); if (KTV.sync) KTV.sync.cleared(); },
         isVideo: function (w) { return w.kind === 'movie' || w.kind === 'episode' || w.kind === 'catchup'; },
         finished: function (w) { return w.dur > 0 && w.pos >= w.dur * 0.95; },
         resumable: function (w) { return this.isVideo(w) && w.pos > 60000 && !this.finished(w); },

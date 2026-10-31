@@ -396,6 +396,7 @@
             }, function (e) { msg.textContent = 'Laden mislukt. ' + ((e && e.message) || ''); });
         };
         s.resume = function () { if (all.length) { buildCats(); setCat(cat, true); } };
+        s.syncRefresh = s.resume;
         s.onKey = function (e) {
             if (e.keyCode === K.UP && (KTV.focus.cur === grid.root || KTV.focus.cur === cats.root)) { KTV.focus.set(search); return true; }
             return false;
@@ -460,6 +461,7 @@
             });
         };
         s.resume = function () { buttons(); };
+        s.syncRefresh = s.resume;
         return s;
     };
 
@@ -588,6 +590,7 @@
             }, function (e) { msg.textContent = 'Laden mislukt. ' + ((e && e.message) || ''); });
         };
         s.resume = function () { if (data) { eps.refresh(); updateCont(); } };
+        s.syncRefresh = s.resume;
         return s;
     };
 })();

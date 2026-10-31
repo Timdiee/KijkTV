@@ -193,6 +193,7 @@ class VodPlayerActivity : Activity() {
     override fun onStop() {
         super.onStop()
         savePosition()
+        Sync.flush()
         player?.let { resumeAt = it.currentPosition }
         handler.removeCallbacks(ticker)
         playerView.player = null

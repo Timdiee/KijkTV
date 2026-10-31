@@ -348,6 +348,7 @@
 
         s.show = function () { loadAll(); };
         s.resume = function () { if (D.channels.length) build(); KTV.devmode.renewIfNeeded(false); };
+        s.syncRefresh = function () { if (D.channels.length) build(); };
         s.reload = function () { D.channels = []; loadAll(); };
         s.back = function () { KTV.exit(); };
         s.destroy = function () { clearInterval(timer); KTV.epg.offUpdate(onEpg); };
@@ -633,6 +634,7 @@
         }
         s.show = function () { refresh(); KTV.focus.set(list.items.length ? list.root : btns[filter]); };
         s.resume = function () { refresh(); };
+        s.syncRefresh = s.resume;
         return s;
     };
 

@@ -106,7 +106,7 @@ KTV.call = function (method, params) {
         if (typeof window.PalmServiceBridge === 'undefined') {
             // Gewone browser: alleen 'fetch' kan (als de server CORS toestaat).
             if (method !== 'fetch') { reject(new Error('Alleen beschikbaar op de tv')); return; }
-            fetch(params.url).then(function (r) {
+            fetch(params.url, params.method ? { method: params.method, body: params.body } : undefined).then(function (r) {
                 return r.text().then(function (t) { resolve({ status: r.status, body: t }); });
             }, reject);
             return;
@@ -275,6 +275,7 @@ KTV.screens = {
             if (t._lastFocus && document.body.contains(t._lastFocus)) KTV.focus.set(t._lastFocus);
             if (t.resume) t.resume();
             if (!KTV.focus.cur || !document.body.contains(KTV.focus.cur)) KTV.focus.first(t.root);
+            if (KTV.syncNow && t.syncRefresh) KTV.syncNow(false);
         }
     },
 

@@ -108,6 +108,24 @@ object History {
         l.add(0, item)
         while (l.size > MAX) l.removeAt(l.size - 1)
         save(ctx)
+        Sync.changed(ctx, item)
+    }
+
+    /** Stand van een ander apparaat overnemen (zonder hem terug te sturen). */
+    @Synchronized
+    fun applyRemote(ctx: Context, item: WatchItem) {
+        val l = list(ctx)
+        l.removeAll { it.key == item.key }
+        val i = l.indexOfFirst { it.updatedAt < item.updatedAt }
+        if (i < 0) l.add(item) else l.add(i, item)
+        while (l.size > MAX) l.removeAt(l.size - 1)
+        save(ctx)
+    }
+
+    @Synchronized
+    fun removeLocal(ctx: Context, key: String) {
+        list(ctx).removeAll { it.key == key }
+        save(ctx)
     }
 
     @Synchronized
@@ -117,18 +135,23 @@ object History {
         if (dur > 0) w.durationMs = dur
         w.updatedAt = System.currentTimeMillis()
         save(ctx)
+        Sync.changed(ctx, w)
     }
 
     @Synchronized
     fun remove(ctx: Context, key: String) {
-        list(ctx).removeAll { it.key == key }
+        val l = list(ctx)
+        val w = l.firstOrNull { it.key == key }
+        l.removeAll { it.key == key }
         save(ctx)
+        if (w != null) Sync.removed(ctx, key, w.kind)
     }
 
     @Synchronized
     fun clear(ctx: Context) {
         list(ctx).clear()
         save(ctx)
+        Sync.cleared(ctx)
     }
 
     fun clock(ms: Long): String {

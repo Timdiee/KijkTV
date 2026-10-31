@@ -207,6 +207,8 @@ class HomeActivity : Activity() {
         val acc = prefs.account
         if (acc != null && !started) start(acc)
         else if (Repo.all.isNotEmpty()) { buildRows(); ensureEpg(); loadVod() }
+        // Verder kijken van je andere apparaten ophalen.
+        Sync.pull(this) { if (!isFinishing && Repo.all.isNotEmpty()) buildRows() }
     }
 
     override fun onPause() {
@@ -229,6 +231,8 @@ class HomeActivity : Activity() {
                     buildRows()
                     ensureEpg()
                     loadVod()
+                    // Nu de zenders er zijn kunnen ook de favorieten van je andere apparaten mee.
+                    Sync.pull(this, force = true) { if (!isFinishing) buildRows() }
                 }
             } catch (e: Exception) {
                 runOnUiThread {
