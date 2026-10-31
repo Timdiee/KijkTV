@@ -62,8 +62,8 @@
         <item name="android:layout_marginEnd">4dp</item>
         <item name="android:minWidth">0dp</item>
         <item name="android:minHeight">0dp</item>
-        <item name="android:paddingStart">14dp</item>
-        <item name="android:paddingEnd">14dp</item>
+        <item name="android:paddingStart">11dp</item>
+        <item name="android:paddingEnd">11dp</item>
         <item name="android:background">@drawable/nav_bg</item>
         <item name="android:textAllCaps">false</item>
         <item name="android:textColor">@color/nav_text</item>

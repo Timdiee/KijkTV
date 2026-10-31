@@ -111,6 +111,10 @@
     function navBar(active) {
         var bar = el('div', 'nav');
         bar.appendChild(el('div', 'nav-logo', 'KijkTV'));
+        var srch = el('div', 'nav-btn nav-icon f');
+        srch.innerHTML = KTV.icon('search');
+        srch._act = function () { KTV.screens.push(KTV.Search()); };
+        bar.appendChild(srch);
         var items = [
             ['home', 'Home'], ['live', 'Live tv'], ['guide', 'Tv-gids'], ['catchup', 'Terugkijken'],
             ['movies', 'Films'], ['series', 'Series'], ['history', 'Geschiedenis']
@@ -277,6 +281,107 @@
         c.update = function () { };
         return e;
     }
+
+    /* ======================= Zoeken ======================= */
+
+    /** Kleine letters en zonder accenten, zodat "cafe" ook "Café" vindt (zelfde als Android). */
+    function norm(s) {
+        s = String(s || '').toLowerCase();
+        try { s = s.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); } catch (e) { }
+        return s;
+    }
+    /** Alle woorden moeten erin staan; begint de naam ermee, dan bovenaan. -1 = past niet. */
+    function score(name, words, whole) {
+        var n = norm(name);
+        for (var i = 0; i < words.length; i++) if (n.indexOf(words[i]) < 0) return -1;
+        if (n === whole) return 3;
+        if (n.indexOf(whole) === 0) return 2;
+        var at = n.indexOf(words[0]);
+        return at <= 0 || !/[a-z0-9]/.test(n.charAt(at - 1)) ? 1 : 0;
+    }
+    function find(items, q, limit) {
+        var whole = norm(q).trim();
+        var words = whole.split(/\s+/).filter(Boolean);
+        if (!words.length) return [];
+        var hits = [];
+        items.forEach(function (x, i) { var sc = score(x.name, words, whole); if (sc >= 0) hits.push([sc, i, x]); });
+        hits.sort(function (a, b) { return b[0] - a[0] || a[1] - b[1]; });
+        return hits.slice(0, limit || 60).map(function (h) { return h[2]; });
+    }
+    KTV.searchFind = find;
+
+    KTV.Search = function () {
+        var s = screen('search');
+        var r = s.root;
+        var head = el('div', 'page-head');
+        head.appendChild(el('div', 'page-title', 'Zoeken'));
+        var input = el('input', 'input search f search-big');
+        input.placeholder = 'Zoek zenders, films en series';
+        input.setAttribute('autocomplete', 'off');
+        head.appendChild(input);
+        r.appendChild(head);
+        var msg = el('div', 'search-msg', 'Typ een naam van een zender, film of serie.');
+        r.appendChild(msg);
+        var rows = el('div', 'search-rows');
+        r.appendChild(rows);
+        var timer = null, vodBusy = false, rowObjs = [];
+
+        function addRow(title, cards, poster) {
+            if (!cards.length) return;
+            var row = new KTV.HRow({
+                title: title, cards: cards,
+                renderCard: function (c) { return poster ? posterCard(c) : wideCard(c); },
+                onSelect: function () { }
+            });
+            row.root.classList.toggle('posters', !!poster);
+            rows.appendChild(row.root);
+            rowObjs.push(row);
+        }
+
+        function run() {
+            var q = input.value;
+            rows.innerHTML = '';
+            rowObjs = [];
+            if (!q.trim()) { msg.textContent = 'Typ een naam van een zender, film of serie.'; msg.style.display = ''; return; }
+            var ch = find(D.channels, q), mv = find(D.movies || [], q), se = find(D.series || [], q);
+            addRow('Zenders  ·  ' + ch.length, ch.map(function (c, i) {
+                KTV.epg.request(c);
+                return { title: c.name, logo: c.logo, channel: c, act: function () { KTV.screens.push(KTV.Player.live(ch, i)); } };
+            }));
+            addRow('Films  ·  ' + mv.length, mv.map(function (m) {
+                var w = KTV.history.get('mv:' + m.id);
+                return { title: m.name, image: m.poster, progress: w && KTV.history.resumable(w) ? KTV.history.progress(w) : 0,
+                    act: function () { KTV.screens.push(KTV.MovieDetail(m)); } };
+            }), true);
+            addRow('Series  ·  ' + se.length, se.map(function (x) {
+                return { title: x.name, image: x.cover, act: function () { KTV.screens.push(KTV.SeriesScreen(x)); } };
+            }), true);
+            var none = !ch.length && !mv.length && !se.length;
+            msg.style.display = none || vodBusy ? '' : 'none';
+            msg.textContent = none && vodBusy ? 'Zoeken…  (films en series worden nog geladen)'
+                : none ? 'Niets gevonden voor "' + q.trim() + '".' : 'Films en series worden nog geladen…';
+        }
+
+        input.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(run, 250); });
+
+        s.show = function () {
+            KTV.focus.set(input);
+            setTimeout(function () { try { input.focus(); } catch (e) { } }, 50);
+            var a = KTV.account.get();
+            if (a && a.type === 'xtream' && !(D.movies && D.series)) {
+                vodBusy = true;
+                D.loadMovies().then(null, function () { }).then(function () { return D.loadSeries(); }).then(null, function () { })
+                    .then(function () { vodBusy = false; if (input.value.trim()) run(); });
+            }
+        };
+        s.onKey = function (e) {
+            // Vanuit de resultaten omhoog terug naar het zoekvak.
+            if (e.keyCode === K.UP && rowObjs.length && KTV.focus.cur === rowObjs[0].viewport) { KTV.focus.set(input); return true; }
+            return false;
+        };
+        s.destroy = function () { clearTimeout(timer); };
+        return s;
+    };
 
     KTV.Home = function () {
         var s = screen('home');

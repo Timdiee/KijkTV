@@ -318,3 +318,8 @@ html, body {
 .prof-tile.focused .prof-name { color: #fff; }
 .prof-hint { margin-top: 64px; font-size: 24px; color: var(--muted); text-align: center; white-space: pre-line; }
 .dialog-input { width: 100%; box-sizing: border-box; margin: 18px 0 22px; font-size: 30px; }
+
+/* Zoeken */
+.search-big { flex: 1; max-width: 1100px; font-size: 30px; }
+.search-msg { padding: 40px var(--pad-x); font-size: 26px; color: var(--muted); }
+.search-rows { position: absolute; left: 0; right: 0; top: 150px; bottom: 0; overflow: hidden; padding-bottom: 600px; scroll-behavior: smooth; }

@@ -161,6 +161,7 @@ class HomeActivity : Activity() {
         findViewById<Button>(R.id.navLive).setOnClickListener { startActivity(Intent(this, MainActivity::class.java)) }
         findViewById<Button>(R.id.navGuide).setOnClickListener { openGuide() }
         findViewById<Button>(R.id.navCatchup).setOnClickListener { startActivity(MainActivity.catchup(this)) }
+        findViewById<View>(R.id.navSearch).setOnClickListener { startActivity(SearchActivity.intent(this)) }
         val navProfile = findViewById<TextView>(R.id.navProfile)
         navProfile.setOnClickListener { startActivity(ProfileActivity.intent(this)) }
         navProfile.setOnFocusChangeListener { _, _ -> showProfileButton() }

@@ -43,6 +43,18 @@
                 android:textSize="22sp"
                 android:textStyle="bold" />
 
+            <ImageButton
+                android:id="@+id/navSearch"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/nav_bg"
+                android:contentDescription="Zoeken"
+                android:padding="7dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_search"
+                android:tint="@color/nav_text" />
+
             <Button android:id="@+id/navHome" style="@style/NavTab" android:text="Home" />
             <Button android:id="@+id/navLive" style="@style/NavTab" android:text="Live tv" />
             <Button android:id="@+id/navGuide" style="@style/NavTab" android:text="Tv-gids" />
