@@ -54,6 +54,16 @@
             android:textColor="@color/text"
             android:textColorHint="@color/muted"
             android:textSize="14sp" />
+
+        <Button
+            android:id="@+id/refreshBtn"
+            style="@style/NavTab"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="0dp"
+            android:drawableStart="@drawable/ic_refresh"
+            android:drawablePadding="6dp"
+            android:drawableTint="@color/nav_text"
+            android:text="Vernieuwen" />
     </LinearLayout>
 
     <LinearLayout
@@ -71,10 +81,26 @@
             android:clipToPadding="false"
             android:padding="4dp" />
 
-        <FrameLayout
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_marginStart="14dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/gridHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingBottom="8dp"
+            android:text="OK ingedrukt houden (of lang tikken) op een titel: verwijderen uit Verder kijken. Je plek blijft bewaard."
+            android:textColor="@color/muted"
+            android:textSize="13sp"
+            android:visibility="gone" />
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
             android:layout_weight="1">
 
             <androidx.recyclerview.widget.RecyclerView
@@ -108,5 +134,6 @@
                     android:textSize="15sp" />
             </LinearLayout>
         </FrameLayout>
+        </LinearLayout>
     </LinearLayout>
 </LinearLayout>

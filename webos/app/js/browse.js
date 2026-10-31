@@ -293,6 +293,9 @@
         var search = el('input', 'input search f');
         search.placeholder = 'Zoeken';
         head.appendChild(search);
+        var refresh = KTV.button('Vernieuwen', 'refresh');
+        refresh._act = function () { reload(); };
+        head.appendChild(refresh);
         r.appendChild(head);
         var body = el('div', 'media-body');
         var colCats = el('div', 'col cats');
@@ -328,7 +331,43 @@
                 else KTV.screens.push(KTV.MovieDetail(it));
             }
         });
+        var gridHint = el('div', 'grid-hint', 'OK ingedrukt houden op een titel: verwijderen uit Verder kijken. Je plek blijft bewaard.');
+        gridHint.style.display = 'none';
+        colGrid.appendChild(gridHint);
         colGrid.appendChild(grid.root);
+        grid.root._long = function () {
+            if (cat !== '__resume' || search.value) { grid.root._act(); return; }
+            var it = grid.items[grid.index];
+            if (!it) return;
+            KTV.history.askHide(it.name, function () {
+                if (isSeries) KTV.history.hideSeries(it.id); else KTV.history.hide('mv:' + it.id);
+                buildCats();
+                var left = resumeItems();
+                if (!left.length) { cat = '__all'; buildCats(); }
+                setCat(cat, true);
+                KTV.focus.set(left.length ? grid.root : cats.root);
+            });
+        };
+
+        function reload() {
+            var before = {};
+            all.forEach(function (x) { before[x.id] = 1; });
+            search.value = '';
+            msg.innerHTML = '<span class="spinner"></span><div>Vernieuwen…</div>';
+            var old = isSeries ? D.series : D.movies;
+            (isSeries ? D.loadSeries(true) : D.loadMovies(true)).then(function (l) {
+                msg.innerHTML = '';
+                all = l || [];
+                var added = all.filter(function (x) { return !before[x.id]; }).length;
+                buildCats();
+                setCat(cat === '__resume' && !resumeItems().length ? '__all' : cat, true);
+                KTV.toast(added === 1 ? 'Bijgewerkt: 1 nieuwe titel' : added > 1 ? 'Bijgewerkt: ' + added + ' nieuwe titels' : 'Bijgewerkt: geen nieuwe titels');
+            }, function () {
+                msg.innerHTML = '';
+                if (isSeries) D.series = old; else D.movies = old;
+                KTV.toast('Vernieuwen mislukt. Probeer het later opnieuw.');
+            });
+        }
 
         function resumeItems() {
             var byKey = {};
@@ -370,11 +409,13 @@
             search.value = '';
             grid.setItems(itemsFor(key), keep ? grid.index : 0);
             cats.refresh();
+            gridHint.style.display = key === '__resume' && grid.items.length ? '' : 'none';
         }
 
         search.addEventListener('input', function () {
             var q = search.value.trim().toLowerCase();
             if (!q) { setCat(cat, true); return; }
+            gridHint.style.display = 'none';
             grid.setItems(all.filter(function (x) { return x.name.toLowerCase().indexOf(q) >= 0; }), 0);
         });
 
@@ -392,6 +433,7 @@
                 cat = resumeItems().length ? '__resume' : '__all';
                 buildCats();
                 grid.setItems(itemsFor(cat), 0);
+                gridHint.style.display = cat === '__resume' ? '' : 'none';
                 KTV.focus.set(grid.root);
             }, function (e) { msg.textContent = 'Laden mislukt. ' + ((e && e.message) || ''); });
         };
@@ -481,7 +523,11 @@
         info.appendChild(plot);
         var cont = KTV.button('', 'play', 'primary');
         cont.style.display = 'none';
-        info.appendChild(cont);
+        var refreshEp = KTV.button('Nieuwe afleveringen ophalen', 'refresh');
+        refreshEp._act = function () { reloadEps(); };
+        var btnRow = el('div', 'series-btns');
+        btnRow.appendChild(cont); btnRow.appendChild(refreshEp);
+        info.appendChild(btnRow);
         head.appendChild(cover); head.appendChild(info);
         r.appendChild(head);
 
@@ -589,6 +635,29 @@
                 KTV.focus.set(cont.style.display === 'none' ? eps.root : cont);
             }, function (e) { msg.textContent = 'Laden mislukt. ' + ((e && e.message) || ''); });
         };
+        function reloadEps() {
+            if (!data) return;
+            var before = {};
+            allEps.forEach(function (e) { before[e.id] = 1; });
+            KTV.toast('Afleveringen ophalen…');
+            D.seriesInfo(x).then(function (d) {
+                data = d;
+                if (d.plot) plot.textContent = d.plot;
+                allEps = [];
+                d.seasons.forEach(function (z) { allEps = allEps.concat(z.episodes); });
+                if (KTV.queue && KTV.queue.series && KTV.queue.series.id === x.id) KTV.queue.episodes = allEps;
+                var added = allEps.filter(function (e) { return !before[e.id]; }).length;
+                var keep = season, idx = d.seasons.length - 1;
+                d.seasons.forEach(function (z, i) { if (z.number === keep) idx = i; });
+                if (d.seasons.length) {
+                    seasons.setItems(d.seasons, idx);
+                    season = -1;
+                    showSeason(d.seasons[idx].number);
+                }
+                updateCont();
+                KTV.toast(added === 1 ? 'Bijgewerkt: 1 nieuwe aflevering' : added > 1 ? 'Bijgewerkt: ' + added + ' nieuwe afleveringen' : 'Bijgewerkt: geen nieuwe afleveringen');
+            }, function () { KTV.toast('Ophalen mislukt. Probeer het later opnieuw.'); });
+        }
         s.resume = function () { if (data) { eps.refresh(); updateCont(); } };
         s.syncRefresh = s.resume;
         return s;

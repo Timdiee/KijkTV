@@ -13,6 +13,7 @@ import coil.load
 class PosterItem(val name: String, val image: String?, val progress: Int)
 
 class PosterAdapter(
+    private val onLongClick: ((Int) -> Unit)? = null,
     private val onClick: (Int) -> Unit
 ) : RecyclerView.Adapter<PosterAdapter.VH>() {
 
@@ -56,6 +57,12 @@ class PosterAdapter(
         h.itemView.setOnClickListener {
             val pos = h.bindingAdapterPosition
             if (pos != RecyclerView.NO_POSITION) onClick(pos)
+        }
+        val lc = onLongClick
+        if (lc != null) h.itemView.setOnLongClickListener {
+            val pos = h.bindingAdapterPosition
+            if (pos != RecyclerView.NO_POSITION) lc(pos)
+            true
         }
     }
 }

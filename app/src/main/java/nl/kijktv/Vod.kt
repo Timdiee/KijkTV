@@ -54,6 +54,21 @@ object Vod {
         queue = emptyList(); queueSeries = null; forServer = null
     }
 
+    /** Lijst vergeten, zodat hij opnieuw bij de aanbieder wordt opgehaald. */
+    fun invalidate(series: Boolean) {
+        if (series) { this.series = null; seriesCats = emptyList() } else { movies = null; movieCats = emptyList() }
+    }
+
+    fun restoreMovies(l: List<Movie>) {
+        movies = l
+        movieCats = l.map { it.category }.distinct()
+    }
+
+    fun restoreSeries(l: List<Series>) {
+        series = l
+        seriesCats = l.map { it.category }.distinct()
+    }
+
     private fun checkAccount(acc: Account) {
         val k = acc.server + "|" + acc.user
         if (forServer != k) { clear(); forServer = k }

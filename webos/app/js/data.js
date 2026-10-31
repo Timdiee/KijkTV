@@ -311,8 +311,8 @@
 
     function catMap(r) { var m = {}; r.cats.forEach(function (c) { m[c[0]] = c[1]; }); return m; }
 
-    D.loadMovies = function () {
-        if (D.movies) return Promise.resolve(D.movies);
+    D.loadMovies = function (fresh) {
+        if (D.movies && !fresh) return Promise.resolve(D.movies);
         var a = KTV.account.get();
         if (!a || a.type !== 'xtream') return Promise.resolve([]);
         return KTV.call('xtreamList', { server: a.server, user: a.user, pass: a.pass, kind: 'vod' }).then(function (r) {
@@ -328,8 +328,8 @@
         });
     };
 
-    D.loadSeries = function () {
-        if (D.series) return Promise.resolve(D.series);
+    D.loadSeries = function (fresh) {
+        if (D.series && !fresh) return Promise.resolve(D.series);
         var a = KTV.account.get();
         if (!a || a.type !== 'xtream') return Promise.resolve([]);
         return KTV.call('xtreamList', { server: a.server, user: a.user, pass: a.pass, kind: 'series' }).then(function (r) {
@@ -473,6 +473,7 @@
             var copy = {};
             Object.keys(item).forEach(function (k) { if (k !== 'plot') copy[k] = item[k]; });
             copy.at = Date.now();
+            copy.hide = 0;
             l.unshift(copy);
             if (l.length > 300) l.length = 300;
             store.set('history', l);
@@ -483,6 +484,7 @@
             for (var i = 0; i < l.length; i++) {
                 if (l[i].key === key) {
                     l[i].pos = pos;
+                    l[i].hide = 0;
                     if (dur > 0) l[i].dur = dur;
                     l[i].at = Date.now();
                     store.set('history', l);
@@ -501,6 +503,23 @@
         finished: function (w) { return w.dur > 0 && w.pos >= w.dur * 0.95; },
         resumable: function (w) { return this.isVideo(w) && w.pos > 60000 && !this.finished(w); },
         progress: function (w) { return w.dur > 0 ? Math.min(1, w.pos / w.dur) : 0; },
-        resumeList: function () { var self = this; return this.all().filter(function (w) { return self.resumable(w); }); }
+        resumeList: function () { var self = this; return this.all().filter(function (w) { return self.resumable(w) && !w.hide; }); },
+        /** Uit "Verder kijken" halen; de plek blijft bewaard en komt terug als je weer kijkt. */
+        hide: function (key) {
+            var l = store.get('history', []), hit = null;
+            l.forEach(function (w) { if (w.key === key) { w.hide = 1; w.at = Date.now(); hit = w; } });
+            store.set('history', l);
+            if (hit && KTV.sync) KTV.sync.changed(hit);
+        },
+        hideSeries: function (sid) {
+            var l = store.get('history', []), hits = [], now = Date.now();
+            l.forEach(function (w) { if (w.kind === 'episode' && w.sid === sid && !w.hide) { w.hide = 1; w.at = now; hits.push(w); } });
+            store.set('history', l);
+            if (KTV.sync) hits.forEach(function (w) { KTV.sync.changed(w); });
+        },
+        askHide: function (title, done) {
+            KTV.dialog.choose(title, 'Verwijderen uit Verder kijken? Kijk je hem later weer, dan begint hij waar je gebleven was.',
+                ['Verwijderen', 'Annuleren'], function (i) { if (i === 0) done(); });
+        }
     };
 })();

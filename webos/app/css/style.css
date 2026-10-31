@@ -293,3 +293,9 @@ html, body {
 .pbtn { height: 74px; }
 .login-side .input { background: var(--bg); border-color: var(--bg); }
 .login-side .input.focused, .login-side .input:focus { border-color: #fff; }
+
+/* Vernieuwen en verwijderen uit Verder kijken */
+.grid-hint { font-size: 21px; color: var(--muted); padding: 0 6px 14px; }
+.col.grid { display: flex; flex-direction: column; }
+.col.grid > :last-child { flex: 1; min-height: 0; }
+.series-btns { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }

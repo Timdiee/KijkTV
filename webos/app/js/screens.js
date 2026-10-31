@@ -254,6 +254,12 @@
                 onSelect: showHero
             });
             row.root.classList.toggle('posters', !!poster);
+            if (cards.some(function (c) { return c.long; })) {
+                row.viewport._long = function () {
+                    var c = row.cards[row.index];
+                    if (c && c.long) c.long(); else if (c && c.act) c.act();
+                };
+            }
             rows.appendChild(row.root);
         }
 
@@ -270,7 +276,9 @@
                 return {
                     title: w.title, sub: w.sub, image: w.img, progress: KTV.history.progress(w), label: 'Verder kijken',
                     meta: 'Gestopt bij ' + KTV.clock(w.pos) + (w.dur ? ' van ' + KTV.clock(w.dur) : ''), heroImage: w.img,
-                    act: function () { KTV.playItem(w); }
+                    desc: 'OK ingedrukt houden: verwijderen uit Verder kijken',
+                    act: function () { KTV.playItem(w); },
+                    long: function () { KTV.history.askHide(w.title, function () { KTV.history.hide(w.key); build(); }); }
                 };
             });
             addRow('Verder kijken', resume);

@@ -72,7 +72,7 @@ object Sync {
     private fun toJson(acc: Account, w: WatchItem) = JSONObject()
         .put("key", w.key).put("kind", w.kind).put("title", w.title).put("sub", w.subtitle)
         .put("img", w.image ?: "").put("url", hideLogin(acc, w.url)).put("pos", w.positionMs)
-        .put("dur", w.durationMs).put("at", w.updatedAt).put("sid", w.seriesId)
+        .put("dur", w.durationMs).put("at", w.updatedAt).put("sid", w.seriesId).put("hide", if (w.hidden) 1 else 0)
 
     private fun fromJson(acc: Account, o: JSONObject): WatchItem? {
         val key = o.optString("key")
@@ -81,7 +81,8 @@ object Sync {
         if (key.isEmpty() || !syncable(kind) || url.isEmpty()) return null
         return WatchItem(
             key, kind, o.optString("title"), o.optString("sub"), o.optString("img").ifEmpty { null },
-            showLogin(acc, url), o.optLong("pos"), o.optLong("dur"), o.optLong("at"), o.optInt("sid")
+            showLogin(acc, url), o.optLong("pos"), o.optLong("dur"), o.optLong("at"), o.optInt("sid"),
+            hidden = o.optInt("hide") == 1
         )
     }
 

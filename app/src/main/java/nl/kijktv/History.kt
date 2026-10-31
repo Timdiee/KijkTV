@@ -20,7 +20,9 @@ class WatchItem(
     var updatedAt: Long = System.currentTimeMillis(),
     val seriesId: Int = 0,
     /** Beschrijving voor het pauzescherm (wordt niet in de geschiedenis bewaard). */
-    val plot: String = ""
+    val plot: String = "",
+    /** Uit "Verder kijken" gehaald; de plek waar je was blijft bewaard. */
+    var hidden: Boolean = false
 ) {
     val isVideo get() = kind == MOVIE || kind == EPISODE || kind == CATCHUP
     val finished get() = durationMs > 0 && positionMs >= durationMs * 95 / 100
@@ -57,7 +59,8 @@ object History {
                         WatchItem(
                             o.optString("key"), o.optString("kind"), o.optString("title"),
                             o.optString("sub"), o.optString("img").ifEmpty { null }, o.optString("url"),
-                            o.optLong("pos"), o.optLong("dur"), o.optLong("at"), o.optInt("sid")
+                            o.optLong("pos"), o.optLong("dur"), o.optLong("at"), o.optInt("sid"),
+                            hidden = o.optInt("hide") == 1
                         )
                     )
                 }
@@ -78,6 +81,7 @@ object History {
                         .put("key", w.key).put("kind", w.kind).put("title", w.title).put("sub", w.subtitle)
                         .put("img", w.image ?: "").put("url", w.url).put("pos", w.positionMs)
                         .put("dur", w.durationMs).put("at", w.updatedAt).put("sid", w.seriesId)
+                        .put("hide", if (w.hidden) 1 else 0)
                 )
             }
             val tmp = File(ctx.filesDir, "history.tmp")
@@ -92,7 +96,38 @@ object History {
     @Synchronized
     fun get(ctx: Context, key: String): WatchItem? = list(ctx).firstOrNull { it.key == key }
 
-    fun resumable(ctx: Context): List<WatchItem> = all(ctx).filter { it.resumable }
+    /** Voor de lijsten "Verder kijken" (zonder de items die je daaruit hebt verwijderd). */
+    fun resumable(ctx: Context): List<WatchItem> = all(ctx).filter { it.resumable && !it.hidden }
+
+    /** Uit "Verder kijken" halen. Hoe ver je was blijft bewaard; kijk je weer, dan komt hij terug. */
+    @Synchronized
+    fun hide(ctx: Context, key: String) {
+        val w = list(ctx).firstOrNull { it.key == key } ?: return
+        w.hidden = true
+        w.updatedAt = System.currentTimeMillis()
+        save(ctx)
+        Sync.changed(ctx, w)
+    }
+
+    /** Alle afleveringen van een serie uit "Verder kijken" halen. */
+    @Synchronized
+    fun hideSeries(ctx: Context, seriesId: Int) {
+        val now = System.currentTimeMillis()
+        val changed = list(ctx).filter { it.kind == WatchItem.EPISODE && it.seriesId == seriesId && !it.hidden }
+        for (w in changed) { w.hidden = true; w.updatedAt = now }
+        save(ctx)
+        for (w in changed) Sync.changed(ctx, w)
+    }
+
+    /** Vraagt of het item uit "Verder kijken" mag; daarna [done]. */
+    fun askHide(activity: Activity, title: String, done: () -> Unit) {
+        AlertDialog.Builder(activity, android.R.style.Theme_Material_Dialog_Alert)
+            .setTitle(title)
+            .setMessage("Verwijderen uit Verder kijken?\n\nKijk je hem later weer, dan begint hij waar je gebleven was.")
+            .setPositiveButton("Verwijderen") { _, _ -> done() }
+            .setNegativeButton("Annuleren", null)
+            .show()
+    }
 
     /** Voegt toe of zet bovenaan; bewaart de opgeslagen positie als die er al was. */
     @Synchronized
@@ -132,6 +167,7 @@ object History {
     fun updatePosition(ctx: Context, key: String, pos: Long, dur: Long) {
         val w = list(ctx).firstOrNull { it.key == key } ?: return
         w.positionMs = pos
+        w.hidden = false
         if (dur > 0) w.durationMs = dur
         w.updatedAt = System.currentTimeMillis()
         save(ctx)

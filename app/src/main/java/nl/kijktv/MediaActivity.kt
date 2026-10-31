@@ -42,6 +42,7 @@ class MediaActivity : Activity() {
     private lateinit var search: EditText
     private lateinit var catAdapter: GroupAdapter
     private lateinit var posterAdapter: PosterAdapter
+    private lateinit var gridHint: View
 
     private val handler = Handler(Looper.getMainLooper())
     private var pendingCat: Runnable? = null
@@ -81,7 +82,9 @@ class MediaActivity : Activity() {
                 grid.post { focusGrid(0) }
             }
         )
-        posterAdapter = PosterAdapter { i -> open(i) }
+        gridHint = findViewById(R.id.gridHint)
+        posterAdapter = PosterAdapter(onLongClick = { i -> askRemove(i) }) { i -> open(i) }
+        findViewById<View>(R.id.refreshBtn).setOnClickListener { reload() }
         catsView.layoutManager = LinearLayoutManager(this)
         catsView.adapter = catAdapter
         catsView.itemAnimator = null
@@ -101,24 +104,69 @@ class MediaActivity : Activity() {
             message.text = "Films en series werken als je inlogt met server, gebruikersnaam en wachtwoord.\n\nMet een losse M3U-link staan films en series (als je aanbieder ze levert) gewoon als groepen bij Live TV."
             return
         }
-        message.text = if (isSeries) "Series laden…" else "Films laden…"
+        load(false)
+    }
+
+    /** Haalt de lijst op; [fresh] = opnieuw bij de aanbieder (nieuwe titels). */
+    private fun load(fresh: Boolean) {
+        val acc = prefs.account ?: return
+        if (!acc.isXtream) return
+        val before = if (isSeries) seriesList.map { it.id }.toSet() else movieList.map { it.id }.toSet()
+        if (fresh) Vod.invalidate(isSeries)
+        ready = false
+        loadingBox.visibility = View.VISIBLE
+        loading.visibility = View.VISIBLE
+        message.text = if (fresh) "Vernieuwen…" else if (isSeries) "Series laden…" else "Films laden…"
         Thread {
             try {
                 if (isSeries) {
                     val l = Vod.loadSeries(acc)
-                    runOnUiThread { if (!isFinishing) { seriesList = l; onLoaded() } }
+                    runOnUiThread { if (!isFinishing) { seriesList = l; onLoaded(fresh, l.count { it.id !in before }) } }
                 } else {
                     val l = Vod.loadMovies(acc)
-                    runOnUiThread { if (!isFinishing) { movieList = l; onLoaded() } }
+                    runOnUiThread { if (!isFinishing) { movieList = l; onLoaded(fresh, l.count { it.id !in before }) } }
                 }
             } catch (e: Exception) {
                 runOnUiThread {
                     if (isFinishing) return@runOnUiThread
-                    loading.visibility = View.GONE
-                    message.text = "Laden mislukt.\n${e.message ?: ""}"
+                    if (fresh && (movieList.isNotEmpty() || seriesList.isNotEmpty())) {
+                        // Oude lijst blijft staan.
+                        if (isSeries) Vod.restoreSeries(seriesList) else Vod.restoreMovies(movieList)
+                        ready = true
+                        loadingBox.visibility = View.GONE
+                        android.widget.Toast.makeText(this, "Vernieuwen mislukt. Probeer het later opnieuw.", android.widget.Toast.LENGTH_LONG).show()
+                    } else {
+                        loading.visibility = View.GONE
+                        message.text = "Laden mislukt.\n${e.message ?: ""}"
+                    }
                 }
             }
         }.start()
+    }
+
+    private fun reload() {
+        if (!ready && (movieList.isNotEmpty() || seriesList.isNotEmpty())) return
+        if (search.text.isNotEmpty()) { ready = false; search.setText(""); ready = true }
+        load(true)
+    }
+
+    /** Lang indrukken in "Verder kijken": daaruit verwijderen (de plek blijft bewaard). */
+    private fun askRemove(i: Int) {
+        if (currentCat != KEY_RESUME || search.text.isNotEmpty()) return
+        if (isSeries) {
+            val s = shownSeries.getOrNull(i) ?: return
+            History.askHide(this, s.name) { History.hideSeries(this, s.id); afterRemove() }
+        } else {
+            val m = shownMovies.getOrNull(i) ?: return
+            History.askHide(this, m.name) { History.hide(this, "mv:${m.id}"); afterRemove() }
+        }
+    }
+
+    private fun afterRemove() {
+        rebuildCats()
+        selectCat(currentCat, keepScroll = true)
+        if (posterAdapter.itemCount > 0) grid.post { focusGrid(0) }
+        else catsView.post { (catsView.layoutManager as LinearLayoutManager).findViewByPosition(catAdapter.indexOf(currentCat))?.requestFocus() }
     }
 
     override fun onResume() {
@@ -136,9 +184,20 @@ class MediaActivity : Activity() {
         }
     }
 
-    private fun onLoaded() {
+    private fun onLoaded(fresh: Boolean = false, added: Int = 0) {
         ready = true
         rebuildCats()
+        if (fresh) {
+            android.widget.Toast.makeText(
+                this,
+                when {
+                    added == 1 -> "Bijgewerkt: 1 nieuwe titel"
+                    added > 1 -> "Bijgewerkt: $added nieuwe titels"
+                    else -> "Bijgewerkt: geen nieuwe titels"
+                },
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+        }
         val empty = if (isSeries) seriesList.isEmpty() else movieList.isEmpty()
         if (empty) {
             loading.visibility = View.GONE
@@ -146,6 +205,13 @@ class MediaActivity : Activity() {
             return
         }
         loadingBox.visibility = View.GONE
+        if (fresh) {
+            // Blijf waar je was.
+            val valid = currentCat == KEY_ALL || (currentCat == KEY_RESUME && resumeCount() > 0) ||
+                (if (isSeries) Vod.seriesCats else Vod.movieCats).contains(currentCat)
+            selectCat(if (valid) currentCat else KEY_ALL, keepScroll = true)
+            return
+        }
         val start = if (resumeCount() > 0) KEY_RESUME else KEY_ALL
         selectCat(start)
         catsView.post {
@@ -207,6 +273,7 @@ class MediaActivity : Activity() {
         showGrid()
         if (!keepScroll) grid.scrollToPosition(0)
         catAdapter.setActive(key)
+        gridHint.visibility = if (key == KEY_RESUME && posterAdapter.itemCount > 0) View.VISIBLE else View.GONE
     }
 
     private fun applySearch(q: String) {
@@ -214,6 +281,7 @@ class MediaActivity : Activity() {
         if (query.isEmpty()) { selectCat(currentCat); return }
         if (isSeries) shownSeries = seriesList.filter { it.name.contains(query, ignoreCase = true) }
         else shownMovies = movieList.filter { it.name.contains(query, ignoreCase = true) }
+        gridHint.visibility = View.GONE
         showGrid()
         grid.scrollToPosition(0)
     }

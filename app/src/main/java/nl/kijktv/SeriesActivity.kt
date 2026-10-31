@@ -81,14 +81,59 @@ class SeriesActivity : Activity() {
         episodesView.adapter = episodeAdapter
         episodesView.itemAnimator = null
 
+        findViewById<View>(R.id.refreshBtn).setOnClickListener { load(true) }
+        load(false)
+    }
+
+    private var loadingInfo = false
+
+    /** Afleveringen ophalen; [fresh] = op verzoek opnieuw (nieuwe afleveringen). */
+    private fun load(fresh: Boolean) {
+        val acc = prefs.account ?: return
+        val s = series ?: return
+        if (loadingInfo) return
+        loadingInfo = true
+        val before = allEpisodes().map { it.id }.toSet()
+        if (fresh) android.widget.Toast.makeText(this, "Afleveringen ophalen…", android.widget.Toast.LENGTH_SHORT).show()
         Thread {
             try {
                 val si = Vod.seriesInfo(acc, s)
-                runOnUiThread { if (!isFinishing) onLoaded(si) }
+                runOnUiThread {
+                    loadingInfo = false
+                    if (isFinishing) return@runOnUiThread
+                    if (!fresh) { onLoaded(si); return@runOnUiThread }
+                    val added = si.seasons.values.flatten().count { it.id !in before }
+                    onRefreshed(si)
+                    android.widget.Toast.makeText(
+                        this,
+                        when (added) { 0 -> "Bijgewerkt: geen nieuwe afleveringen"; 1 -> "Bijgewerkt: 1 nieuwe aflevering"; else -> "Bijgewerkt: $added nieuwe afleveringen" },
+                        android.widget.Toast.LENGTH_LONG
+                    ).show()
+                }
             } catch (e: Exception) {
-                runOnUiThread { if (!isFinishing) message.text = "Laden mislukt.\n${e.message ?: ""}" }
+                runOnUiThread {
+                    loadingInfo = false
+                    if (isFinishing) return@runOnUiThread
+                    if (fresh) android.widget.Toast.makeText(this, "Ophalen mislukt. Probeer het later opnieuw.", android.widget.Toast.LENGTH_LONG).show()
+                    else message.text = "Laden mislukt.\n${e.message ?: ""}"
+                }
             }
         }.start()
+    }
+
+    /** Nieuwe lijst tonen, maar op hetzelfde seizoen blijven. */
+    private fun onRefreshed(si: SeriesInfo) {
+        if (info == null) { onLoaded(si); return }
+        info = si
+        findViewById<TextView>(R.id.plot).text = si.plot
+        if (si.seasons.isEmpty()) return
+        message.visibility = View.GONE
+        seasonAdapter.submit(si.seasons.map { (n, eps) -> GroupItem(n.toString(), "Seizoen $n", eps.size) })
+        val keep = if (si.seasons.containsKey(currentSeason)) currentSeason else si.seasons.keys.last()
+        currentSeason = -1
+        showSeason(keep)
+        if (Vod.queueSeries?.id == series?.id) Vod.queue = allEpisodes()
+        updateContinue()
     }
 
     override fun onResume() {

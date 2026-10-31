@@ -33,6 +33,8 @@ class HomeCard(
     val heroDesc: String,
     val heroImage: String?,
     val channel: Channel? = null,
+    /** Lang indrukken (OK ingedrukt houden). */
+    val longAction: (() -> Unit)? = null,
     val action: () -> Unit
 )
 
@@ -90,6 +92,9 @@ class CardAdapter(
             if (has) onFocus(c)
         }
         h.itemView.setOnClickListener { c.action() }
+        val la = c.longAction
+        if (la != null) h.itemView.setOnLongClickListener { la(); true }
+        else { h.itemView.setOnLongClickListener(null); h.itemView.isLongClickable = false }
     }
 }
 
@@ -323,7 +328,9 @@ class HomeActivity : Activity() {
                 heroLabel = "Verder kijken",
                 heroMeta = "Gestopt bij ${History.clock(w.positionMs)}" +
                     if (w.durationMs > 0) " van ${History.clock(w.durationMs)}" else "",
-                heroDesc = w.subtitle, heroImage = w.image,
+                heroDesc = w.subtitle + "\n\nOK ingedrukt houden (of lang tikken): verwijderen uit Verder kijken",
+                heroImage = w.image,
+                longAction = { History.askHide(this, w.title) { History.hide(this, w.key); buildRows() } },
                 action = { History.playWithResume(this, w) }
             )
         }

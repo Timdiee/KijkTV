@@ -70,7 +70,7 @@ class HistoryActivity : Activity() {
         val all = History.all(this)
         val list = when (filter) {
             Filter.ALL -> all
-            Filter.RESUME -> all.filter { it.resumable }
+            Filter.RESUME -> all.filter { it.resumable && !it.hidden }
             Filter.VOD -> all.filter { it.isVideo }
             Filter.LIVE -> all.filter { it.kind == WatchItem.LIVE }
         }

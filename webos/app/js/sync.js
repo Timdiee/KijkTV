@@ -83,12 +83,12 @@
 
     function toRemote(a, w) {
         return { key: w.key, kind: w.kind, title: w.title || '', sub: w.sub || '', img: w.img || '', url: hideLogin(a, w.url),
-            pos: w.pos || 0, dur: w.dur || 0, at: w.at || 0, sid: w.sid || 0 };
+            pos: w.pos || 0, dur: w.dur || 0, at: w.at || 0, sid: w.sid || 0, hide: w.hide ? 1 : 0 };
     }
     function fromRemote(a, o) {
         if (!o || !o.key || !syncable(o.kind) || !o.url) return null;
         return { key: o.key, kind: o.kind, title: o.title || '', sub: o.sub || '', img: o.img || null, url: showLogin(a, o.url),
-            pos: +o.pos || 0, dur: +o.dur || 0, at: +o.at || 0, sid: +o.sid || 0 };
+            pos: +o.pos || 0, dur: +o.dur || 0, at: +o.at || 0, sid: +o.sid || 0, hide: o.hide ? 1 : 0 };
     }
 
     function request(method, path, body) {
