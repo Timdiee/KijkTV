@@ -89,7 +89,7 @@
             D.tz = (obj.server_info && obj.server_info.timezone) || null;
             var formats = (ui.allowed_output_formats || []).map(function (f) { return String(f).toLowerCase(); });
             // De ingebouwde speler van LG speelt HLS (m3u8) het soepelst af.
-            D.ext = formats.length === 0 || formats.indexOf('m3u8') >= 0 ? 'm3u8' : 'ts';
+            D.ext = KTV.isIOS || formats.length === 0 || formats.indexOf('m3u8') >= 0 ? 'm3u8' : 'ts';
         }, function (e) {
             var m = (e && e.message) || '';
             if (m.indexOf('wachtwoord') >= 0) throw e;
@@ -171,7 +171,7 @@
 
     /** Past het gekozen streamtype toe op live-links van Xtream. */
     D.liveUrl = function (ch) {
-        var f = KTV.settings.get('format');
+        var f = KTV.isIOS ? 'hls' : KTV.settings.get('format');
         if (ch.url.indexOf('/live/') < 0) return ch.url;
         if (f === 'hls') return ch.url.replace(/\.ts$/, '.m3u8');
         if (f === 'ts') return ch.url.replace(/\.m3u8$/, '.ts');
@@ -286,6 +286,8 @@
                 b + '/streaming/timeshift.php?username=' + u + '&password=' + pw + '&stream=' + sid + '&start=' + st + '&duration=' + min,
                 b + '/timeshift/' + u + '/' + pw + '/' + sm + '/' + st + '/' + sid + '.ts',
                 b + '/streaming/timeshift.php?username=' + u + '&password=' + pw + '&stream=' + sid + '&start=' + st + '&duration=' + sm];
+            // iPhone speelt geen losse .ts-bestanden: eerst de m3u8-vorm proberen.
+            if (KTV.isIOS) all.sort(function (x, y) { return (/m3u8$/.test(y) ? 1 : 0) - (/m3u8$/.test(x) ? 1 : 0); });
             var out = [];
             all.forEach(function (x) { if (out.indexOf(x) < 0) out.push(x); });
             return out;

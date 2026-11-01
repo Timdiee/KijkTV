@@ -1,6 +1,6 @@
 {
     "id": "nl.kijktv.app",
-    "version": "1.9.0",
+    "version": "1.9.1",
     "vendor": "KijkTV",
     "type": "web",
     "main": "index.html",

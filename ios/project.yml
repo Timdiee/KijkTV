@@ -1,0 +1,53 @@
+name: KijkTV
+options:
+  bundleIdPrefix: nl.kijktv
+  deploymentTarget:
+    iOS: "15.0"
+targets:
+  KijkTV:
+    type: application
+    platform: iOS
+    sources:
+      - path: KijkTV
+      - path: web
+        type: folder
+        buildPhase: resources
+    info:
+      path: KijkTV/Info.plist
+      properties:
+        CFBundleDisplayName: KijkTV
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        UILaunchScreen: {}
+        UIRequiresFullScreen: true
+        UIStatusBarHidden: true
+        UIViewControllerBasedStatusBarAppearance: true
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UIBackgroundModes:
+          - audio
+        LSApplicationQueriesSchemes:
+          - vlc
+          - vlc-x-callback
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+          NSAllowsArbitraryLoadsInWebContent: true
+          NSAllowsArbitraryLoadsForMedia: true
+        NSLocalNetworkUsageDescription: KijkTV gebruikt het netwerk om je zenders af te spelen.
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: nl.kijktv.app
+        PRODUCT_NAME: KijkTV
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SWIFT_VERSION: "5.0"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        CODE_SIGNING_ALLOWED: "NO"
+        CODE_SIGNING_REQUIRED: "NO"
+        CODE_SIGN_IDENTITY: ""
+        ENABLE_BITCODE: "NO"

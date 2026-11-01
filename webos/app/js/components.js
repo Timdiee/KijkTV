@@ -16,6 +16,8 @@
         this.rowH = opts.rowH || 64;
         this.scroll = 0;
         this.root = KTV.el('div', 'vlist f ' + (opts.cls || ''));
+        this.root._comp = this;
+        this.root._pointer = true;   // klikken op een regel/kaart handelt het onderdeel zelf af
         this.inner = KTV.el('div', 'vlist-inner');
         this.emptyEl = KTV.el('div', 'vlist-empty', opts.empty || '');
         this.root.appendChild(this.inner);
@@ -141,6 +143,8 @@
         this.root = KTV.el('div', 'hrow');
         this.root.appendChild(KTV.el('div', 'hrow-title', opts.title));
         this.viewport = KTV.el('div', 'hrow-viewport f');
+        this.viewport._comp = this;
+        this.viewport._pointer = true;
         this.track = KTV.el('div', 'hrow-track');
         this.viewport.appendChild(this.track);
         this.root.appendChild(this.viewport);
@@ -193,6 +197,8 @@
         this.index = 0;
         this.scroll = 0;
         this.root = KTV.el('div', 'vgrid f');
+        this.root._comp = this;
+        this.root._pointer = true;   // klikken op een regel/kaart handelt het onderdeel zelf af
         this.inner = KTV.el('div', 'vgrid-inner');
         this.emptyEl = KTV.el('div', 'vlist-empty', opts.empty || '');
         this.root.appendChild(this.inner);

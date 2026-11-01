@@ -145,7 +145,7 @@
             if (!p) {
                 dTitle.textContent = ch.name;
                 dMeta.textContent = ch.group;
-                dDesc.textContent = 'Druk op OK om live te kijken.';
+                dDesc.textContent = KTV.tx('Druk op OK om live te kijken.', 'Tik om live te kijken.');
                 return;
             }
             var n = Date.now();
@@ -331,7 +331,7 @@
                 else KTV.screens.push(KTV.MovieDetail(it));
             }
         });
-        var gridHint = el('div', 'grid-hint', 'OK ingedrukt houden op een titel: verwijderen uit Verder kijken. Je plek blijft bewaard.');
+        var gridHint = el('div', 'grid-hint', KTV.tx('OK ingedrukt houden', 'Lang drukken') + ' op een titel: verwijderen uit Verder kijken. Je plek blijft bewaard.');
         gridHint.style.display = 'none';
         colGrid.appendChild(gridHint);
         colGrid.appendChild(grid.root);

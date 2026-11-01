@@ -155,7 +155,7 @@
         wrap.appendChild(el('div', 'prof-title', 'Wie kijkt er?'));
         var row = el('div', 'prof-row');
         wrap.appendChild(row);
-        wrap.appendChild(el('div', 'prof-hint', 'Elk profiel heeft een eigen Verder kijken en geschiedenis.\nOK ingedrukt houden: naam wijzigen of verwijderen.'));
+        wrap.appendChild(el('div', 'prof-hint', 'Elk profiel heeft een eigen Verder kijken en geschiedenis.\n' + KTV.tx('OK ingedrukt houden', 'Lang drukken') + ': naam wijzigen of verwijderen.'));
         r.appendChild(wrap);
         var P = KTV.profiles;
 
@@ -469,7 +469,7 @@
                 return {
                     title: w.title, sub: w.sub, image: w.img, progress: KTV.history.progress(w), label: 'Verder kijken',
                     meta: 'Gestopt bij ' + KTV.clock(w.pos) + (w.dur ? ' van ' + KTV.clock(w.dur) : ''), heroImage: w.img,
-                    desc: 'OK ingedrukt houden: verwijderen uit Verder kijken',
+                    desc: KTV.tx('OK ingedrukt houden', 'Lang drukken') + ': verwijderen uit Verder kijken',
                     act: function () { KTV.playItem(w); },
                     long: function () { KTV.history.askHide(w.title, function () { KTV.history.hide(w.key); build(); }); }
                 };
@@ -595,7 +595,7 @@
         var info = el('div', 'col info');
         body.appendChild(colG); body.appendChild(colC); body.appendChild(info);
         r.appendChild(body);
-        r.appendChild(el('div', 'hint', 'OK: kijken   ·   Pijltje rechts: programma\'s en terugkijken   ·   OK lang ingedrukt: favoriet'));
+        r.appendChild(el('div', 'hint', KTV.tx('OK: kijken   ·   Pijltje rechts: programma\'s en terugkijken   ·   OK lang ingedrukt: favoriet', 'Tik: kijken   ·   Lang drukken: favoriet   ·   Tv-gids: programma\'s en terugkijken')));
 
         var current = [];
         var groupKey = startGroup || KTV.store.get('lastGroup', '__all');
@@ -801,7 +801,7 @@
             });
         };
         r.appendChild(list.root);
-        r.appendChild(el('div', 'hint', 'OK: afspelen   ·   OK lang ingedrukt: verwijderen'));
+        r.appendChild(el('div', 'hint', KTV.tx('OK: afspelen   ·   OK lang ingedrukt: verwijderen', 'Tik: afspelen   ·   Lang drukken: verwijderen')));
 
         clear._act = function () {
             KTV.dialog.choose('Geschiedenis wissen?', 'Alles wat je bekeken hebt en alle punten om verder te kijken worden gewist. Je favorieten blijven bewaard.',
@@ -845,14 +845,18 @@
         var a = KTV.account.get();
         var who = !a ? 'Niet ingelogd' : a.type === 'xtream' ? 'Ingelogd als ' + a.user + (D.info ? '  ·  ' + D.info : '') : 'M3U-playlist';
         var fmt = { auto: 'Automatisch', hls: 'HLS', ts: 'MPEG-TS' }[KTV.settings.get('format')] || 'Automatisch';
-        KTV.dialog.choose('Instellingen', who, [
+        var opts = [
             'Inloggegevens wijzigen',
             'Streamtype: ' + fmt,
             'Zenderlijst vernieuwen',
             'Programmagids vernieuwen',
             'Ontwikkelaarsmodus verlengen (laatst: ' + KTV.devmode.label() + ')',
             'Over KijkTV'
-        ], function (i) {
+        ];
+        // Op de iPhone: geen streamtype (altijd HLS) en geen ontwikkelaarsmodus.
+        var map = KTV.isIOS ? [0, 2, 3, 5] : [0, 1, 2, 3, 4, 5];
+        KTV.dialog.choose('Instellingen', who, map.map(function (k) { return opts[k]; }), function (j) {
+            var i = j < 0 ? -1 : map[j];
             if (i === 0) KTV.screens.push(KTV.Login());
             if (i === 1) {
                 var cur = ['auto', 'hls', 'ts'].indexOf(KTV.settings.get('format'));
@@ -869,7 +873,7 @@
                     KTV.toast(ok ? 'Ontwikkelaarsmodus verlengd' : 'Automatisch verlengen lukte niet. Gebruik de Developer Mode-app.');
                 });
             }
-            if (i === 5) KTV.dialog.choose('KijkTV 1.1 voor LG', 'IPTV-speler voor je eigen abonnement.\nGeen reclame, geen kosten.', ['Sluiten'], null);
+            if (i === 5) KTV.dialog.choose(KTV.isIOS ? 'KijkTV voor iPhone' : 'KijkTV voor LG', 'IPTV-speler voor je eigen abonnement.\nGeen reclame, geen kosten.', ['Sluiten'], null);
         });
     };
 })();

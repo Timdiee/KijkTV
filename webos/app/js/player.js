@@ -8,6 +8,9 @@
         var root = el('div', 'screen player');
         var video = el('video', 'video');
         video.setAttribute('preload', 'auto');
+        video.setAttribute('playsinline', '');
+        video.setAttribute('webkit-playsinline', '');
+        video.setAttribute('x-webkit-airplay', 'allow');
         root.appendChild(video);
         var spinner = el('div', 'spinner big');
         root.appendChild(spinner);
@@ -161,7 +164,9 @@
             u.bar.style.display = n ? 'block' : 'none';
             if (n) u.fill.style.width = (KTV.progress(n) * 100) + '%';
             u.next.textContent = nx ? 'Straks  ' + KTV.time(nx.start) + '   ' + nx.title : '';
-            u.hint.textContent = n && KTV.catchup.can(c, n) ? 'Druk 2x op links om dit programma vanaf het begin te kijken   ·   OK lang: pauze' : 'OK lang ingedrukt: pauze';
+            u.hint.textContent = KTV.touch
+                ? (n && KTV.catchup.can(c, n) ? 'Veeg 2x naar links: vanaf het begin   ·   ' : '') + 'Veeg omhoog/omlaag: andere zender   ·   Lang drukken: pauze'
+                : n && KTV.catchup.can(c, n) ? 'Druk 2x op links om dit programma vanaf het begin te kijken   ·   OK lang: pauze' : 'OK lang ingedrukt: pauze';
         }
 
         function zap(d) {
@@ -207,7 +212,7 @@
             var alt = !altTried ? D.altUrl(url) : null;
             if (alt) { altTried = true; start(alt); return; }
             u.spinner.classList.remove('show');
-            u.error.textContent = 'Deze zender speelt nu niet af.\nDruk op OK om het opnieuw te proberen, of kies een andere zender.';
+            u.error.textContent = 'Deze zender speelt nu niet af.\n' + KTV.tx('Druk op OK om het opnieuw te proberen, of kies een andere zender.', 'Tik om het opnieuw te proberen, of veeg naar een andere zender.');
             u.error.classList.add('show');
         });
 
@@ -407,6 +412,16 @@
             u.error.textContent = item.kind === 'catchup'
                 ? 'Dit moment is niet terug te kijken.\nJe aanbieder heeft hier waarschijnlijk geen opname van.\nProbeer een later tijdstip of een andere dag.'
                 : 'Dit kan nu niet afgespeeld worden.\nDruk op OK om het opnieuw te proberen.';
+            if (KTV.isIOS && item.kind !== 'catchup') {
+                // De iPhone speelt sommige bestanden (zoals .mkv) niet zelf af; VLC kan dat wel.
+                u.error.textContent = 'Dit bestand kan de iPhone niet zelf afspelen.';
+                var vlc = KTV.button('Openen in VLC', 'play', 'primary');
+                vlc.style.marginTop = '28px';
+                vlc._act = function () { KTV.openInVlc(item.url); };
+                u.error.appendChild(document.createElement('br'));
+                u.error.appendChild(vlc);
+                KTV.focus.set(vlc);
+            }
             u.error.classList.add('show');
         });
 

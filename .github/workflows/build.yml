@@ -1,4 +1,4 @@
-name: Bouw KijkTV APK
+name: Bouw KijkTV
 
 on:
   push:
@@ -74,3 +74,50 @@ jobs:
           name: KijkTV (nieuwste versie)
           make_latest: true
           files: KijkTV-LG.ipk
+
+  ios:
+    needs: build
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: XcodeGen installeren
+        run: brew install xcodegen
+
+      - name: KijkTV-scherm (zelfde als LG) in de app zetten
+        run: |
+          rm -rf ios/web
+          cp -R webos/app ios/web
+          rm -f ios/web/appinfo.json ios/web/icon.png ios/web/largeIcon.png
+
+      - name: Xcode-project maken
+        run: cd ios && xcodegen generate
+
+      - name: iPhone-app bouwen
+        run: |
+          cd ios
+          xcodebuild -project KijkTV.xcodeproj -scheme KijkTV -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build
+
+      - name: IPA maken
+        run: |
+          cd ios
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/KijkTV.app Payload/
+          zip -qry ../KijkTV-iPhone.ipa Payload
+          ls -la ../KijkTV-iPhone.ipa
+
+      - name: Bewaren als download
+        uses: actions/upload-artifact@v4
+        with:
+          name: KijkTV-iPhone-ipa
+          path: KijkTV-iPhone.ipa
+
+      - name: Toevoegen aan release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: nieuwste
+          name: KijkTV (nieuwste versie)
+          make_latest: true
+          files: KijkTV-iPhone.ipa
