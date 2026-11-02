@@ -166,9 +166,7 @@ class HomeActivity : Activity() {
         navProfile.setOnClickListener { startActivity(ProfileActivity.intent(this)) }
         navProfile.setOnFocusChangeListener { _, _ -> showProfileButton() }
         // Meer dan één profiel: eerst vragen wie er kijkt (zoals bij Netflix).
-        if (savedInstanceState == null && !Profiles.chosenThisRun && Profiles.visible(this).size > 1) {
-            startActivity(ProfileActivity.intent(this))
-        }
+        if (savedInstanceState == null) maybeAskProfile()
         findViewById<Button>(R.id.navMovies).setOnClickListener { startActivity(MediaActivity.movies(this)) }
         findViewById<Button>(R.id.navSeries).setOnClickListener { startActivity(MediaActivity.series(this)) }
         findViewById<Button>(R.id.navHistory).setOnClickListener { startActivity(Intent(this, HistoryActivity::class.java)) }
@@ -224,12 +222,21 @@ class HomeActivity : Activity() {
         else if (Repo.all.isNotEmpty()) { buildRows(); ensureEpg(); loadVod() }
         showProfileButton()
         // Verder kijken van je andere apparaten ophalen.
-        Sync.pull(this) { if (!isFinishing) { showProfileButton(); if (Repo.all.isNotEmpty()) buildRows() } }
+        Sync.pull(this) { if (!isFinishing) { showProfileButton(); maybeAskProfile(); if (Repo.all.isNotEmpty()) buildRows() } }
     }
 
     override fun onPause() {
         super.onPause()
         handler.removeCallbacks(ticker)
+    }
+
+    private var askedProfile = false
+
+    /** Profielen van een ander apparaat binnengekomen: alsnog vragen wie er kijkt (één keer per start). */
+    private fun maybeAskProfile() {
+        if (askedProfile || Profiles.chosenThisRun || Profiles.visible(this).size < 2) return
+        askedProfile = true
+        startActivity(ProfileActivity.intent(this))
     }
 
     /** Rondje rechtsboven met de letter van wie er kijkt. */
@@ -256,7 +263,7 @@ class HomeActivity : Activity() {
                     ensureEpg()
                     loadVod()
                     // Nu de zenders er zijn kunnen ook de favorieten van je andere apparaten mee.
-                    Sync.pull(this, force = true) { if (!isFinishing) buildRows() }
+                    Sync.pull(this, force = true) { if (!isFinishing) { showProfileButton(); maybeAskProfile(); buildRows() } }
                 }
             } catch (e: Exception) {
                 runOnUiThread {

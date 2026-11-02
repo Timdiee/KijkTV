@@ -39,7 +39,8 @@ object Settings {
                     "Streamtype: $format",
                     "Programmagids vernieuwen",
                     "Zenderlijst vernieuwen",
-                    "Videodecoder: $dec"
+                    "Videodecoder: $dec",
+                    "Koppelen met andere apparaten: ${Sync.status(a)}"
                 )
             ) { _, which ->
                 when (which) {
@@ -58,6 +59,13 @@ object Settings {
                     }
                     4 -> onReloadChannels()
                     5 -> chooseDecoder(a, onPlaybackChanged)
+                    6 -> {
+                        Toast.makeText(a, "Bezig met koppelen…", Toast.LENGTH_SHORT).show()
+                        Sync.pull(a, force = true)
+                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                            Toast.makeText(a, "Koppelen: ${Sync.status(a)}", Toast.LENGTH_LONG).show()
+                        }, 4000)
+                    }
                 }
             }
             .show()

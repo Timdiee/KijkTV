@@ -30,6 +30,7 @@ object Sync {
     private val pending = HashMap<String, Runnable>()
     private val latest = HashMap<String, String>()
     @Volatile private var lastPullAt = 0L
+    @Volatile private var lastCode = 0
     @Volatile private var pulling = false
     /** Gevraagd terwijl er al een ronde liep: daarna nog een keer. */
     @Volatile private var again: Pair<Context, (() -> Unit)?>? = null
@@ -103,6 +104,7 @@ object Sync {
                 conn.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
             }
             val code = conn.responseCode
+            lastCode = code
             if (code !in 200..299) return null
             return conn.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
         } finally {
@@ -211,6 +213,19 @@ object Sync {
         return JSONObject().put("t", t).put("ids", ids).toString()
     }
 
+    /** Voor in de instellingen: wanneer het koppelen met je andere apparaten voor het laatst lukte. */
+    fun status(ctx: Context): String {
+        if (keyFor(Prefs(ctx).account) == null) return "alleen met server, gebruikersnaam en wachtwoord"
+        val sp = prefs(ctx)
+        val err = sp.getString("err", null)
+        val ok = sp.getLong("okAt", 0L)
+        return when {
+            err != null -> "mislukt: $err"
+            ok == 0L -> "nog niet gelukt"
+            else -> "gelukt om ${Fmt.time(ok)}"
+        }
+    }
+
     // ---------- Ophalen van de andere apparaten ----------
 
     /**
@@ -231,7 +246,11 @@ object Sync {
             var ok = true
             fun put(path: String, body: String) { if (request("PUT", path, body) == null) ok = false }
             try {
-                val text = request("GET", key) ?: return@execute
+                val text = request("GET", key)
+                if (text == null) {
+                    prefs(app).edit().putString("err", "de database weigerde (code $lastCode)").apply()
+                    return@execute
+                }
                 val root = if (text.trim() == "null") JSONObject() else JSONObject(text)
                 val sp = prefs(app)
 
@@ -299,6 +318,7 @@ object Sync {
                 }
 
                 // Alleen als alles is aangekomen: anders zou een niet-verstuurd item later als "verwijderd" gelden.
+                sp.edit().putLong("okAt", System.currentTimeMillis()).remove("err").apply()
                 if (ok) {
                     sp.edit().putLong(lastKey, syncStart).apply()
                     val sent = sentPrefs(app)
@@ -306,8 +326,9 @@ object Sync {
                     for ((k, v) in sent.all) if (k.startsWith(pid + "|") && v is Long && v <= syncStart) ed.remove(k)
                     ed.apply()
                 }
-            } catch (_: Exception) {
+            } catch (e: Exception) {
                 // Geen internet of database onbereikbaar: volgende keer opnieuw.
+                prefs(app).edit().putString("err", "geen verbinding (${e.javaClass.simpleName})").apply()
             } finally {
                 pulling = false
                 if (changed && onChanged != null) main.post(onChanged)

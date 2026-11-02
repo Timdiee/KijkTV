@@ -272,6 +272,12 @@
         KTV.sync.pull(force, function (changed) {
             var t = KTV.screens.top();
             if (changed && t && t.syncRefresh) t.syncRefresh();
+            // Profielen van een ander apparaat binnengekomen: alsnog vragen wie er kijkt (één keer per start).
+            if (changed && !KTV.profiles.chosen && !KTV.profiles.asked && KTV.profiles.visible().length > 1 &&
+                t && t.root.classList.contains('home')) {
+                KTV.profiles.asked = true;
+                KTV.screens.push(KTV.Profiles(true));
+            }
         });
     };
 })();
